@@ -2,3 +2,6 @@
 
 namespace cmdutils;
 
+class Cmd {
+	
+}

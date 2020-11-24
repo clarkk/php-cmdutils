@@ -1,6 +1,6 @@
 <?php
 
-namespace cmdutils;
+namespace Cmdutils;
 
 class Cmd {
 	private $output 		= '';

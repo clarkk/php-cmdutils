@@ -5,7 +5,7 @@ namespace Cmdutils;
 class Cmd {
 	private $output 		= '';
 	
-	private $is_childproc 	= false;
+	private $is_stream 		= false;
 	private $proc;
 	private $pipes 			= [];
 	
@@ -17,8 +17,8 @@ class Cmd {
 	const PIPE_STDOUT 		= 1;
 	const PIPE_STDERR 		= 2;
 	
-	public function __construct(bool $is_childproc=false){
-		$this->is_childproc = $is_childproc;
+	public function __construct(bool $is_stream=false){
+		$this->is_stream = $is_stream;
 	}
 	
 	public function output(): string{
@@ -98,7 +98,7 @@ class Cmd {
 		], $this->pipes);
 		fclose($this->pipes[0]);
 		
-		if($this->is_childproc){
+		if($this->is_stream){
 			stream_set_read_buffer($this->pipes[self::PIPE_STDOUT], 0);
 			stream_set_read_buffer($this->pipes[self::PIPE_STDERR], 0);
 			

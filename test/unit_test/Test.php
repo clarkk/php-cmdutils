@@ -65,6 +65,18 @@ class Unit {
 			}
 		}
 		
+		if($error != trim($test_err)){
+			throw new Error($command);
+		}
+		
+		if($output != trim($test_out)){
+			throw new Error($command);
+		}
+		
+		if($code != $exitcode){
+			throw new Error($command);
+		}
+		
 		echo "\n";
 	}
 }

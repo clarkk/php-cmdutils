@@ -84,27 +84,62 @@ class Net {
 			curl_setopt($this->curl, $key, $value);
 		}
 		
-		/*$response 	= curl_exec($this->curl);
-		$code 		= curl_getinfo($this->curl, CURLINFO_HTTP_CODE);
-		$error 		= curl_error($this->curl);
-		$type 		= $this->get_content_type();
+		$response = curl_exec($this->curl);
+		
+		if($response === false){
+			throw new Error(curl_error($this->curl));
+		}
+		
+		$code = curl_getinfo($this->curl, CURLINFO_HTTP_CODE);
+		
+		if($this->decode_type){
+			switch($this->get_content_type()){
+				case self::CONTENT_TYPE_JSON:
+					$this->decode_json($response);
+					break;
+			}
+		}
 		
 		if(!$this->keep_alive){
 			$this->close();
 		}
 		
-		if($this->decode_type){
-			if($type == self::CONTENT_TYPE_JSON){
-				$response = json_decode($response, true) ?? $response;
-			}
-		}
-		
 		return [
 			'code'		=> $code,
-			'error'		=> $error,
-			'type'		=> $type,
 			'response'	=> $response
-		];*/
+		];
+	}
+	
+	public function multipart_value(string $key, string $value, string $file_name='', string $content_type=''): string{
+		if(!$this->boundary){
+			$this->boundary = md5(time());
+		}
+		
+		return '--'.$this->boundary.self::CRLF
+			.self::CONTENT_DISPOSITION.': form-data; name="'.$key.'"'.($file_name ? '; filename="'.$file_name.'"' : '').self::CRLF
+			.($content_type ? self::CONTENT_TYPE.': '.$content_type : '')
+			.self::CONTENT_LENGTH.': '.strlen($value).self::CRLF.self::CRLF
+			.$value.self::CRLF;
+	}
+	
+	public function multipart_end(): string{
+		return '--'.$this->boundary.'--';
+	}
+	
+	private function decode_json(string &$response){
+		try{
+			$response = json_decode($response, true, 512, JSON_THROW_ON_ERROR);
+		}
+		catch(\Exception $e){
+			throw new Error('JSON decode error');
+		}
+	}
+	
+	private function get_content_type(): string{
+		$type 	= curl_getinfo($this->curl, CURLINFO_CONTENT_TYPE);
+		$pos 	= strpos($type, ';');
+		
+		return $pos ? substr($type, 0, $pos) : $type;
 	}
 }
 

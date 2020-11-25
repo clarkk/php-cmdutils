@@ -4,8 +4,7 @@ require_once '../../Net.php';
 
 try{
 	$Net = new \Utils\Net\Net;
-	$Net->request('www.google.com');
-	
+	$Net->request('https://www.google.com');
 	
 	/*$Test = new \Utils\Cmd\Test\Unit;
 	$Test->proc('echo this-test', '', 'this-test');

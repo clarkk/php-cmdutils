@@ -5,6 +5,20 @@ require_once '../../Procs_queue.php';
 try{
 	$Queue = new \Utils\Procs_queue\Procs_queue;
 	
+	$list = [
+		'php procs/proc.php',
+		'php procs/proc.php'
+	];
+	
+	while($list){
+		$command = end($list);
+		
+		$Queue->put($command);
+		break;
+	}
+	
+	
+	
 	//$Net = new \Utils\Net\Net;
 	//$Net->request('https://www.google.com');
 	

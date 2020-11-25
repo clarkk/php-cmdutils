@@ -2,8 +2,8 @@
 
 namespace Utils\Cmd\Test;
 
-use \Utils\Cmd\Cmd as Cmd;
-use \Utils\Cmd\Error as Error;
+use \Utils\Cmd\Cmd;
+use \Utils\Cmd\Error;
 
 class Unit {
 	public function proc(string $command, string $error, string $output){

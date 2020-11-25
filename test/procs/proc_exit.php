@@ -1,9 +1,9 @@
 <?php
 
-echo "First message";
+echo 'First message';
 
 sleep(2);
 
-fwrite(STDERR, "An fatal error occurred!");
+fwrite(STDERR, 'An fatal error occurred!');
 
 exit(1);

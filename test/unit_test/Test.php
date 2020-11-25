@@ -12,7 +12,7 @@ class Unit {
 		echo "ERROR: $err\n";
 		
 		if($error != trim($err)){
-			throw new Error($command);
+			throw new \Cmdutils\Error($command);
 		}
 		
 		$out = trim($cmd->output());
@@ -20,7 +20,7 @@ class Unit {
 		echo "Output: $out\n";
 		
 		if($output != trim($out)){
-			throw new Error($command);
+			throw new \Cmdutils\Error($command);
 		}
 		
 		echo "Command completed!\n\n";
@@ -66,19 +66,17 @@ class Unit {
 		}
 		
 		if($error != trim($test_err)){
-			throw new Error($command);
+			throw new \Cmdutils\Error($command);
 		}
 		
 		if($output != trim($test_out)){
-			throw new Error($command);
+			throw new \Cmdutils\Error($command);
 		}
 		
 		if($code != $exitcode){
-			throw new Error($command);
+			throw new \Cmdutils\Error($command);
 		}
 		
 		echo "\n";
 	}
 }
-
-class Error extends \Error {}

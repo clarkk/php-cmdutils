@@ -21,6 +21,8 @@ class Procs_queue {
 	const VERBOSE_PLAIN = 1;
 	const VERBOSE_COLOR = 2;
 	
+	const TIMEOUT 		= 999;
+	
 	public function __construct(int $verbose=0){
 		$this->nproc 	= (int)shell_exec('nproc');
 		$this->verbose 	= $verbose;

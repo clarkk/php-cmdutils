@@ -2,8 +2,14 @@
 
 require_once '../../Procs_queue.php';
 
+class Test_queue extends \Utils\Procs_queue\Procs_queue {
+	
+}
+
+// tmp folder taskname_2020-11-26-0932_id
+
 try{
-	$Queue = new \Utils\Procs_queue\Procs_queue(\Utils\Procs_queue\Procs_queue::VERBOSE_COLOR);
+	$Queue = new Test_queue(Test_queue::VERBOSE_COLOR);
 	
 	$list = [
 		'php procs/proc.php',

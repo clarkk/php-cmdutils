@@ -124,5 +124,3 @@ class Cmd {
 		$this->exitcode = proc_close($this->proc);
 	}
 }
-
-class Error extends \Error {}

@@ -3,7 +3,6 @@
 namespace Utils\Cmd\Test;
 
 use \Utils\Cmd\Cmd;
-use \Utils\Cmd\Error;
 
 class Unit {
 	public function proc(string $command, string $error, string $output){
@@ -83,3 +82,5 @@ class Unit {
 		echo "\n";
 	}
 }
+
+class Error extends \Error {}

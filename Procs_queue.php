@@ -36,16 +36,34 @@ abstract class Procs_queue {
 	}
 	
 	public function add_worker(string $user, string $host, string $tmp_dir){
+		if($ssh_stream = $this->worker_ssh_connect($user, $host)){
+			$stream = ssh2_exec($ssh_stream, 'nproc');
+			$pipe_stdout = ssh2_fetch_stream($stream, SSH2_STREAM_STDIO);
+			$pipe_stderr = ssh2_fetch_stream($stream, SSH2_STREAM_STDERR);
+			stream_set_blocking($pipe_stdout, true);
+			stream_set_blocking($pipe_stderr, true);
+			$stdout = stream_get_contents($pipe_stdout);
+			$stderr = stream_get_contents($pipe_stderr);
+			
+			//$sftp = ssh2_sftp($ssh_stream);
+			//stream_copy_to_stream(fopen("/root/test.pdf", 'r'), fopen("ssh2.sftp://$sftp/root/test.pdf", 'w'));
+			
+			$this->verbose("Worker '$host' initiated width $nproc procs", self::COLOR_GREEN);
+		}
+		else{
+			$this->verbose("Worker '$host' failed", self::COLOR_RED);
+		}
+		
 		/*$ssh_login = $this->ssh_login($user, $host);
 		
 		$cmd = new Cmd;
 		if($err = $cmd->exec("$ssh_login 'nproc'")){
-			$this->verbose("Worker '$host' failed", self::COLOR_RED);
+			
 		}
 		else{
 			$nproc = (int)$cmd->output();
 			
-			$this->verbose("Worker '$host' initiated width $nproc procs", self::COLOR_GREEN);
+			
 			
 			$this->workers[$host] = [
 				'ssh_login'	=> $ssh_login,
@@ -55,24 +73,6 @@ abstract class Procs_queue {
 			// sh -c 'echo $$; echo $PPID; sleep 10; nproc'
 		}*/
 	}
-	
-	/*$t = microtime(true);
-$session = ssh2_connect('worker.dynaccount.com');
-ssh2_auth_pubkey_file($session, 'root', '/var/www/.ssh/id_rsa.pub', '/var/www/.ssh/id_rsa');
-
-$sftp = ssh2_sftp($session);
-stream_copy_to_stream(fopen("/root/test.pdf", 'r'), fopen("ssh2.sftp://$sftp/root/test.pdf", 'w'));
-
-$stream = ssh2_exec($session, 'nproc');
-$pipe_stdout = ssh2_fetch_stream($stream, SSH2_STREAM_STDIO);
-$pipe_stderr = ssh2_fetch_stream($stream, SSH2_STREAM_STDERR);
-stream_set_blocking($pipe_stdout, true);
-stream_set_blocking($pipe_stderr, true);
-$stdout = stream_get_contents($pipe_stdout);
-$stderr = stream_get_contents($pipe_stderr);
-echo "stderr: '$stderr'\n";
-echo "stdout: '$stdout'\n";
-echo (microtime(true) - $t)."\n";*/
 	
 	public function exec(){
 		$this->start_time();
@@ -112,6 +112,16 @@ echo (microtime(true) - $t)."\n";*/
 	/*private function free_proc_slots(): bool{
 		return count($this->procs) < $this->nproc;
 	}*/
+	
+	private function worker_ssh_connect(string $user, string $host){
+		if(!$session = ssh2_connect($host)){
+			return false;
+		}
+		
+		ssh2_auth_pubkey_file($session, $user, '/var/www/.ssh/id_rsa.pub', '/var/www/.ssh/id_rsa');
+		
+		return $session;
+	}
 	
 	private function check_timeout(): bool{
 		return !$this->procs && $this->get_remain_time() >= 0;

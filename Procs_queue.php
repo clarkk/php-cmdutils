@@ -68,7 +68,7 @@ abstract class Procs_queue {
 	
 	public function exec(string $base_path, string $proc_path, string $tmp_path){
 		if(!is_file($base_path.$proc_path)){
-			$err = "proc path not found: $proc_path";
+			$err = "proc path not found on localhost: $proc_path";
 			
 			$this->verbose($err, self::COLOR_RED);
 			

@@ -7,12 +7,16 @@ require_once 'Net_error_codes.php';
 class SSH extends \Utils\Net\Net_error_codes {
 	private $output 		= '';
 	
+	private $is_stream 		= false;
+	
 	private $session;
 	
-	const RSA_PRIVATE 		= '/var/www/.ssh/id_rsa';
-	const RSA_PUBLIC 		= '/var/www/.ssh/id_rsa.pub';
+	const RSA_PRIVATE 		= '/var/ini/.ssh/id_rsa';
+	const RSA_PUBLIC 		= '/var/ini/.ssh/id_rsa.pub';
 	
-	public function __construct(string $user, string $host){
+	public function __construct(string $user, string $host, bool $is_stream=false){
+		$this->is_stream = $is_stream;
+		
 		if(!is_readable(self::RSA_PRIVATE) || !is_readable(self::RSA_PUBLIC)){
 			throw new SSH_error('RSA keys not found', self::ERR_INIT);
 		}
@@ -30,14 +34,14 @@ class SSH extends \Utils\Net\Net_error_codes {
 		return $this->output;
 	}
 	
-	public function exec(string $command, bool $is_stream=false){
+	public function exec(string $command){
 		$stream = ssh2_exec($this->session, $command);
 		$pipe_stdout = ssh2_fetch_stream($stream, SSH2_STREAM_STDIO);
 		$pipe_stderr = ssh2_fetch_stream($stream, SSH2_STREAM_STDERR);
 		
 		// 'sh -c \'echo $$; echo $PPID; nproc\''
 		
-		if($is_stream){
+		if($this->is_stream){
 			//stream_set_read_buffer($pipe_stdout, 0);
 			//stream_set_read_buffer($pipe_stderr, 0);
 			

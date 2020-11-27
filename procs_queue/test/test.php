@@ -15,7 +15,7 @@ class Test_queue extends \Utils\Procs_queue\Procs_queue {
 
 try{
 	$Queue = new Test_queue(Test_queue::VERBOSE_COLOR);
-	$Queue->add_worker('root', 'worker.dynaccount.com', '/root/tmp');
+	$Queue->add_worker('root', 'worker.dynaccount.com', '/var/www/worker.dynaccount.com/tmp');
 	$Queue->exec();
 	
 	/*while($list){

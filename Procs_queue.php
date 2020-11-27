@@ -4,10 +4,11 @@ namespace Utils\Procs_queue;
 
 require_once 'Cmd.php';
 require_once 'SSH.php';
+require_once 'procs_queue/Worker_init.php';
 
 use \Utils\Cmd\Cmd;
-use \Utils\SSH\SSH;
 use \Utils\SSH\SSH_error;
+use \Utils\Procs_queue\Worker_init;
 
 abstract class Procs_queue {
 	protected $timeout = 9;
@@ -40,26 +41,24 @@ abstract class Procs_queue {
 	
 	public function add_worker(string $user, string $host, string $tmp_dir){
 		try{
-			$ssh = new SSH($user, $host);
-			$err = $ssh->exec('nproc');
+			$this->verbose("Add worker '$host'", self::COLOR_GRAY);
 			
-			if($nproc = (int)$ssh->output()){
-				$this->verbose("Worker '$host' initiated width $nproc procs", self::COLOR_GREEN);
-				
-				$this->workers[$host] = [
-					'nproc'	=> $nproc,
-					'procs'	=> []
-				];
-			}
-			else{
-				$this->verbose("Worker '$host' initializing failed", self::COLOR_RED);
-			}
+			$ssh = new Worker_init($user, $host);
+			$ssh->check_tmpdir($tmp_dir);
+			$nproc = $ssh->get_nproc();
 			
-			$ssh->disconnect();
+			$this->verbose("Worker '$host' initiated\nnprocs: $nproc\ntmpfs: $tmp_dir", self::COLOR_GREEN);
+			
+			$this->workers[$host] = [
+				'nproc'	=> $nproc,
+				'procs'	=> []
+			];
 		}
 		catch(SSH_error $e){
-			$this->verbose("Worker '$host' connection failed", self::COLOR_RED);
+			$this->verbose($e->getMessage(), self::COLOR_RED);
 		}
+		
+		$ssh->disconnect();
 	}
 	
 	public function exec(){
@@ -118,6 +117,8 @@ abstract class Procs_queue {
 	}
 	
 	private function verbose(string $string, string $color){
+		$string = str_replace("\n", "\n\t> ", $string);
+		
 		if($this->verbose == self::VERBOSE_COLOR){
 			$string = "\033[".$color.'m'.$string."\033[0m";
 		}

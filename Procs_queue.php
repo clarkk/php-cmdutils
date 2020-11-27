@@ -47,10 +47,15 @@ abstract class Procs_queue {
 			$ssh->check_tmp_path($base_path.$tmp_path);
 			$nproc = $ssh->get_nproc();
 			
-			$this->verbose("Worker '$host' initiated\nnprocs: $nproc\ntmpfs: $tmp_path", self::COLOR_GREEN);
+			$this->verbose("Worker '$host' initiated\nnprocs: $nproc\nproc: $proc_path\ntmpfs: $tmp_path", self::COLOR_GREEN);
 			
 			$this->workers[$host] = [
 				'nproc'	=> $nproc,
+				'user'	=> $user,
+				'paths'	=> [
+					'proc'	=> $base_path.$proc_path,
+					'tmp'	=> $base_path.$tmp_path
+				],
 				'procs'	=> []
 			];
 		}
@@ -61,7 +66,19 @@ abstract class Procs_queue {
 		$ssh->disconnect();
 	}
 	
-	public function exec(){
+	public function exec(string $base_path, string $proc_path, string $tmp_path){
+		if(!is_file($base_path.$proc_path)){
+			$err = "proc path not found: $proc_path";
+			
+			$this->verbose($err, self::COLOR_RED);
+			
+			throw new Procs_queue_error($err);
+		}
+		
+		if(!is_dir($base_path.$tmp_path)){
+			
+		}
+		
 		$this->start_time();
 		
 		while(true){
@@ -70,7 +87,17 @@ abstract class Procs_queue {
 			}
 			
 			if($proc_slot = $this->get_open_proc_slot()){
-				$this->task_fetch();
+				if($task = $this->task_fetch()){
+					print_r($task);
+					
+					if($proc_slot == self::LOCALHOST){
+						// $base_path.$proc_path
+						// $base_path.$tmp_path
+					}
+					else{
+						
+					}
+				}
 			}
 			
 			break;
@@ -125,16 +152,21 @@ abstract class Procs_queue {
 	}
 	
 	private function check_timeout(): bool{
-		return !$this->get_total_procs() && $this->get_remain_time() >= 0;
+		return !$this->is_procs_running() && $this->get_remain_time() >= 0;
 	}
 	
-	private function get_total_procs(): int{
-		$total = count($this->procs);
-		foreach($this->workers as $k => $worker){
-			$total += count($worker['procs']);
+	private function is_procs_running(): bool{
+		if($this->procs){
+			return true;
 		}
 		
-		return $total;
+		foreach($this->workers as $worker){
+			if($worker['procs']){
+				return true;
+			}
+		}
+		
+		return false;
 	}
 	
 	private function get_remain_time(): int{

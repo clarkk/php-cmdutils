@@ -86,10 +86,12 @@ abstract class Procs_queue {
 		
 		$cmd = new Cmd;
 		$cmd->exec($this->cmd_set_tmpfs($base_path.$tmp_path));
-		
-		echo $cmd->output(true);
-		
-		echo "\n";
+		if($cmd->output(true) != 'OK'){
+			$err = "tmpfs could not be mounted on localhost: $tmp_path";
+			$this->verbose($err, self::COLOR_RED);
+			
+			throw new Procs_queue_error($err);
+		}
 		
 		$this->start_time();
 		

@@ -11,7 +11,7 @@ use \Utils\SSH\SSH_error;
 use \Utils\Procs_queue\Worker_init;
 
 abstract class Procs_queue {
-	protected $timeout = 9;
+	protected $timeout = 9; // 999
 	
 	private $nproc;
 	private $procs 		= [];
@@ -69,11 +69,11 @@ abstract class Procs_queue {
 				break;
 			}
 			
-			
+			$this->task_fetch();
 		}
 	}
 	
-	abstract protected function fetch();
+	abstract protected function task_fetch();
 	
 	/*public function put(string $command){
 		if($this->free_proc_slots()){
@@ -101,7 +101,16 @@ abstract class Procs_queue {
 	}*/
 	
 	private function check_timeout(): bool{
-		return !$this->procs && $this->get_remain_time() >= 0;
+		return !$this->get_total_procs() && $this->get_remain_time() >= 0;
+	}
+	
+	private function get_total_procs(): int{
+		$total = count($this->procs);
+		foreach($this->workers as $k => $worker){
+			$total += count($worker['procs']);
+		}
+		
+		return $total;
 	}
 	
 	private function get_remain_time(): int{

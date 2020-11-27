@@ -3,7 +3,7 @@
 require_once '../../Procs_queue.php';
 
 class Test_queue extends \Utils\Procs_queue\Procs_queue {
-	protected function fetch(){
+	protected function task_fetch(){
 		$list = [
 			'php procs/proc.php',
 			'php procs/proc.php'

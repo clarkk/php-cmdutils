@@ -37,14 +37,28 @@ class SSH extends \Utils\Net\Net_error_codes {
 		
 		// 'sh -c \'echo $$; echo $PPID; nproc\''
 		
-		stream_set_blocking($pipe_stdout, !$is_stream);
-		stream_set_blocking($pipe_stderr, !$is_stream);
-		
-		if(!$is_stream){
+		if($is_stream){
+			//stream_set_read_buffer($pipe_stdout, 0);
+			//stream_set_read_buffer($pipe_stderr, 0);
+			
+			//stream_set_blocking($pipe_stdout, false);
+			//stream_set_blocking($pipe_stderr, false);
+		}
+		else{
+			stream_set_blocking($pipe_stdout, true);
+			stream_set_blocking($pipe_stderr, true);
+			
 			$this->output = stream_get_contents($pipe_stdout);
 			
 			return stream_get_contents($pipe_stderr);
 		}
+	}
+	
+	//$sftp = ssh2_sftp($this->session);
+	//stream_copy_to_stream(fopen("/root/test.pdf", 'r'), fopen("ssh2.sftp://$sftp/root/test.pdf", 'w'));
+	
+	public function disconnect(){
+		ssh2_disconnect($this->session);
 	}
 }
 

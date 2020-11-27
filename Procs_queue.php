@@ -12,8 +12,8 @@ use \Utils\SSH\SSH_error;
 abstract class Procs_queue {
 	protected $timeout = 9;
 	
-	private $procs 		= [];
 	private $nproc;
+	private $procs 		= [];
 	
 	private $workers 	= [];
 	
@@ -43,34 +43,23 @@ abstract class Procs_queue {
 			$ssh = new SSH($user, $host);
 			$err = $ssh->exec('nproc');
 			
-			$nproc = (int)$ssh->output();
+			if($nproc = (int)$ssh->output()){
+				$this->verbose("Worker '$host' initiated width $nproc procs", self::COLOR_GREEN);
+				
+				$this->workers[$host] = [
+					'nproc'	=> $nproc,
+					'procs'	=> []
+				];
+			}
+			else{
+				$this->verbose("Worker '$host' initializing failed", self::COLOR_RED);
+			}
 			
-			$this->verbose("Worker '$host' initiated width $nproc procs", self::COLOR_GREEN);
+			$ssh->disconnect();
 		}
 		catch(SSH_error $e){
-			$this->verbose("Worker '$host' failed", self::COLOR_RED);
+			$this->verbose("Worker '$host' connection failed", self::COLOR_RED);
 		}
-		
-		//$sftp = ssh2_sftp($ssh_stream);
-		//stream_copy_to_stream(fopen("/root/test.pdf", 'r'), fopen("ssh2.sftp://$sftp/root/test.pdf", 'w'));
-		
-		
-		/*$ssh_login = $this->ssh_login($user, $host);
-		
-		$cmd = new Cmd;
-		if($err = $cmd->exec("$ssh_login 'nproc'")){
-			
-		}
-		else{
-			$nproc = (int)$cmd->output();
-			
-			
-			
-			$this->workers[$host] = [
-				'ssh_login'	=> $ssh_login,
-				'nproc'		=> $nproc
-			];
-		}*/
 	}
 	
 	public function exec(){

@@ -30,11 +30,11 @@ class SSH extends \Utils\Net\Net_error_codes {
 		}
 	}
 	
-	public function output(): string{
-		return $this->output;
+	public function output(bool $trim=false): string{
+		return $trim ? trim($this->output) : $this->output;
 	}
 	
-	public function exec(string $command){
+	public function exec(string $command, bool $trim=false){
 		$stream = ssh2_exec($this->session, $command);
 		$pipe_stdout = ssh2_fetch_stream($stream, SSH2_STREAM_STDIO);
 		$pipe_stderr = ssh2_fetch_stream($stream, SSH2_STREAM_STDERR);
@@ -52,9 +52,10 @@ class SSH extends \Utils\Net\Net_error_codes {
 			stream_set_blocking($pipe_stdout, true);
 			stream_set_blocking($pipe_stderr, true);
 			
-			$this->output = stream_get_contents($pipe_stdout);
+			$this->output 	= stream_get_contents($pipe_stdout);
+			$stderr 		= stream_get_contents($pipe_stderr);
 			
-			return stream_get_contents($pipe_stderr);
+			return $trim ? trim($stderr) : $stderr;
 		}
 	}
 	

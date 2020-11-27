@@ -21,8 +21,8 @@ class Cmd {
 		$this->is_stream = $is_stream;
 	}
 	
-	public function output(): string{
-		return $this->output;
+	public function output(bool $trim=false): string{
+		return $trim ? trim($this->output) : $this->output;
 	}
 	
 	public function is_success(): bool{
@@ -90,7 +90,7 @@ class Cmd {
 		return $output;
 	}
 	
-	public function exec(string $command){
+	public function exec(string $command, bool $trim=false){
 		$this->proc = proc_open($command, [
 			self::PIPE_STDIN 	=> ['pipe', 'r'],
 			self::PIPE_STDOUT 	=> ['pipe', 'w'],
@@ -110,7 +110,7 @@ class Cmd {
 			$stderr 		= stream_get_contents($this->pipes[self::PIPE_STDERR]);
 			$this->close();
 			
-			return $stderr;
+			return $trim ? trim($stderr) : $stderr;
 		}
 	}
 	

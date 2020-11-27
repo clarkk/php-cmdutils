@@ -9,19 +9,19 @@ class Unit {
 		echo "Test command: '$command'\n---\n";
 		
 		$cmd = new Cmd;
-		$err = $cmd->exec($command);
+		$err = $cmd->exec($command, true);
 		
 		echo "ERROR: $err\n";
 		
-		if($error != trim($err)){
+		if($error != $err){
 			throw new Error($command);
 		}
 		
-		$out = trim($cmd->output());
+		$out = $cmd->output(true);
 		
 		echo "Output: $out\n";
 		
-		if($output != trim($out)){
+		if($output != $out){
 			throw new Error($command);
 		}
 		

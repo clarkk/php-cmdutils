@@ -4,6 +4,7 @@ namespace Utils\Procs_queue;
 
 require_once 'Cmd.php';
 require_once 'SSH.php';
+require_once 'procs_queue/trait_Commands.php';
 require_once 'procs_queue/Worker_init.php';
 
 use \Utils\Cmd\Cmd;
@@ -11,6 +12,8 @@ use \Utils\SSH\SSH_error;
 use \Utils\Procs_queue\Worker_init;
 
 abstract class Procs_queue {
+	use Commands;
+	
 	protected $timeout = 9; // 999
 	
 	private $nproc;
@@ -69,15 +72,24 @@ abstract class Procs_queue {
 	public function exec(string $base_path, string $proc_path, string $tmp_path){
 		if(!is_file($base_path.$proc_path)){
 			$err = "proc path not found on localhost: $proc_path";
-			
 			$this->verbose($err, self::COLOR_RED);
 			
 			throw new Procs_queue_error($err);
 		}
 		
 		if(!is_dir($base_path.$tmp_path)){
+			$err = "tmp path not found on localhost: $tmp_path";
+			$this->verbose($err, self::COLOR_RED);
 			
+			throw new Procs_queue_error($err);
 		}
+		
+		$cmd = new Cmd;
+		$cmd->exec($this->cmd_set_tmpfs($base_path.$tmp_path));
+		
+		echo $cmd->output(true);
+		
+		echo "\n";
 		
 		$this->start_time();
 		

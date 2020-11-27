@@ -31,12 +31,11 @@ abstract class Procs_queue {
 	const VERBOSE_PLAIN = 1;
 	const VERBOSE_COLOR = 2;
 	
+	const LOCALHOST 	= 'localhost';
+	
 	public function __construct(int $verbose=0){
 		$this->nproc 	= (int)shell_exec('nproc');
 		$this->verbose 	= $verbose;
-		
-		// test
-		$this->nproc++;
 	}
 	
 	public function add_worker(string $user, string $host, string $tmp_dir){
@@ -69,6 +68,11 @@ abstract class Procs_queue {
 				break;
 			}
 			
+			if($proc_slot = $this->get_open_proc_slot()){
+				
+			}
+			
+			break;
 			$this->task_fetch();
 		}
 	}
@@ -99,6 +103,26 @@ abstract class Procs_queue {
 	/*private function free_proc_slots(): bool{
 		return count($this->procs) < $this->nproc;
 	}*/
+	
+	private function get_open_proc_slot(): string{
+		$num_procs = count($this->procs);
+		if($num_procs < $this->nproc){
+			$this->verbose("Open proc slot at '".self::LOCALHOST."' ($num_procs/$this->nproc)", self::COLOR_GRAY);
+			
+			return self::LOCALHOST;
+		}
+		
+		foreach($this->workers as $host => $worker){
+			$num_procs = count($worker['procs']);
+			if($num_procs < $worker['nproc']){
+				$this->verbose("Open proc slot at '$host' ($num_procs/".$worker['nproc'].")", self::COLOR_GRAY);
+				
+				return $host;
+			}
+		}
+		
+		return '';
+	}
 	
 	private function check_timeout(): bool{
 		return !$this->get_total_procs() && $this->get_remain_time() >= 0;

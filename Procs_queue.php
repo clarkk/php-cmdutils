@@ -93,6 +93,7 @@ abstract class Procs_queue {
 			throw new Procs_queue_error($err);
 		}
 		
+		
 		$this->start_time();
 		
 		while(true){

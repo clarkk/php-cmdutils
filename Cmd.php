@@ -90,8 +90,8 @@ class Cmd {
 		return $output;
 	}
 	
-	public function exec(string $syntax){
-		$this->proc = proc_open($syntax, [
+	public function exec(string $command){
+		$this->proc = proc_open($command, [
 			self::PIPE_STDIN 	=> ['pipe', 'r'],
 			self::PIPE_STDOUT 	=> ['pipe', 'w'],
 			self::PIPE_STDERR 	=> ['pipe', 'w']

@@ -3,8 +3,11 @@
 namespace Utils\Procs_queue;
 
 require_once 'Cmd.php';
+require_once 'SSH.php';
 
 use \Utils\Cmd\Cmd;
+use \Utils\SSH\SSH;
+use \Utils\SSH\SSH_error;
 
 abstract class Procs_queue {
 	protected $timeout = 9;
@@ -36,23 +39,21 @@ abstract class Procs_queue {
 	}
 	
 	public function add_worker(string $user, string $host, string $tmp_dir){
-		if($ssh_stream = $this->worker_ssh_connect($user, $host)){
-			$stream = ssh2_exec($ssh_stream, 'nproc');
-			$pipe_stdout = ssh2_fetch_stream($stream, SSH2_STREAM_STDIO);
-			$pipe_stderr = ssh2_fetch_stream($stream, SSH2_STREAM_STDERR);
-			stream_set_blocking($pipe_stdout, true);
-			stream_set_blocking($pipe_stderr, true);
-			$stdout = stream_get_contents($pipe_stdout);
-			$stderr = stream_get_contents($pipe_stderr);
+		try{
+			$ssh = new SSH($user, $host);
+			$err = $ssh->exec('nproc');
 			
-			//$sftp = ssh2_sftp($ssh_stream);
-			//stream_copy_to_stream(fopen("/root/test.pdf", 'r'), fopen("ssh2.sftp://$sftp/root/test.pdf", 'w'));
+			$nproc = (int)$ssh->output();
 			
 			$this->verbose("Worker '$host' initiated width $nproc procs", self::COLOR_GREEN);
 		}
-		else{
+		catch(SSH_error $e){
 			$this->verbose("Worker '$host' failed", self::COLOR_RED);
 		}
+		
+		//$sftp = ssh2_sftp($ssh_stream);
+		//stream_copy_to_stream(fopen("/root/test.pdf", 'r'), fopen("ssh2.sftp://$sftp/root/test.pdf", 'w'));
+		
 		
 		/*$ssh_login = $this->ssh_login($user, $host);
 		
@@ -69,8 +70,6 @@ abstract class Procs_queue {
 				'ssh_login'	=> $ssh_login,
 				'nproc'		=> $nproc
 			];
-			
-			// sh -c 'echo $$; echo $PPID; sleep 10; nproc'
 		}*/
 	}
 	
@@ -113,16 +112,6 @@ abstract class Procs_queue {
 		return count($this->procs) < $this->nproc;
 	}*/
 	
-	private function worker_ssh_connect(string $user, string $host){
-		if(!$session = ssh2_connect($host)){
-			return false;
-		}
-		
-		ssh2_auth_pubkey_file($session, $user, '/var/www/.ssh/id_rsa.pub', '/var/www/.ssh/id_rsa');
-		
-		return $session;
-	}
-	
 	private function check_timeout(): bool{
 		return !$this->procs && $this->get_remain_time() >= 0;
 	}
@@ -148,4 +137,4 @@ abstract class Procs_queue {
 	}
 }
 
-class Error extends \Error {}
+class Procs_queue_error extends \Error {}

@@ -3,13 +3,12 @@
 require_once '../../Procs_queue.php';
 
 class Test_queue extends \Utils\Procs_queue\Procs_queue {
-	private $list = [
-		'php procs/proc.php',
-		'php procs/proc.php'
+	private $tasks = [
+		
 	];
 	
 	protected function task_fetch(){
-		
+		return array_pop($this->tasks);
 	}
 }
 
@@ -17,7 +16,7 @@ class Test_queue extends \Utils\Procs_queue\Procs_queue {
 
 try{
 	$Queue = new Test_queue(Test_queue::VERBOSE_COLOR);
-	$Queue->add_worker('root', 'worker.dynaccount.com', '/var/www/worker.dynaccount.com/tmp');
+	$Queue->add_worker('root', 'worker.dynaccount.com', '/var/www/worker.dynaccount.com/', 'tmp/test_proc.php', 'tmp');
 	$Queue->exec();
 	
 	/*while($list){

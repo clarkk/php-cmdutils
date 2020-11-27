@@ -15,15 +15,26 @@ class Worker_init extends \Utils\SSH\SSH {
 		return $nproc;
 	}
 	
-	public function check_tmpdir(string $tmp_dir){
-		$this->exec("test -d '$tmp_dir' && echo 'OK'");
-		if(trim($this->output()) != 'OK'){
-			throw new SSH_error("tmpdir not found: $tmp_dir", self::ERR_PROCESS);
+	public function check_proc_path(string $proc_path){
+		if(!$this->check_path($proc_path, true)){
+			throw new SSH_error("proc path not found: $proc_path", self::ERR_PROCESS);
+		}
+	}
+	
+	public function check_tmp_path(string $tmp_path){
+		if(!$this->check_path($tmp_path)){
+			throw new SSH_error("tmp path not found: $tmp_path", self::ERR_PROCESS);
 		}
 		
-		$this->exec("mountpoint -q '$tmp_dir' || mount -t tmpfs -o size=512m tmpfs '$tmp_dir' && echo 'OK'");
+		$this->exec("mountpoint -q '$tmp_path' || mount -t tmpfs -o size=512m tmpfs '$tmp_path' && echo 'OK'");
 		if(trim($this->output()) != 'OK'){
-			throw new SSH_error("tmpfs could not be mounted: $tmp_dir", self::ERR_PROCESS);
+			throw new SSH_error("tmpfs could not be mounted: $tmp_path", self::ERR_PROCESS);
 		}
+	}
+	
+	private function check_path(string $path, bool $is_file=false): bool{
+		$this->exec('test '.($is_file ? '-f' : '-d')." '$path' && echo 'OK'");
+		
+		return trim($this->output()) == 'OK';
 	}
 }

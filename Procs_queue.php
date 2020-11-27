@@ -38,15 +38,16 @@ abstract class Procs_queue {
 		$this->verbose 	= $verbose;
 	}
 	
-	public function add_worker(string $user, string $host, string $tmp_dir){
+	public function add_worker(string $user, string $host, string $base_path, string $proc_path, string $tmp_path){
 		try{
 			$this->verbose("Add worker '$host'", self::COLOR_GRAY);
 			
 			$ssh = new Worker_init($user, $host);
-			$ssh->check_tmpdir($tmp_dir);
+			$ssh->check_proc_path($base_path.$proc_path);
+			$ssh->check_tmp_path($base_path.$tmp_path);
 			$nproc = $ssh->get_nproc();
 			
-			$this->verbose("Worker '$host' initiated\nnprocs: $nproc\ntmpfs: $tmp_dir", self::COLOR_GREEN);
+			$this->verbose("Worker '$host' initiated\nnprocs: $nproc\ntmpfs: $tmp_path", self::COLOR_GREEN);
 			
 			$this->workers[$host] = [
 				'nproc'	=> $nproc,
@@ -69,11 +70,10 @@ abstract class Procs_queue {
 			}
 			
 			if($proc_slot = $this->get_open_proc_slot()){
-				
+				$this->task_fetch();
 			}
 			
 			break;
-			$this->task_fetch();
 		}
 	}
 	

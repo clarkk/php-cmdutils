@@ -51,6 +51,7 @@ abstract class Procs_queue extends Verbose {
 			$this->workers[$host] = [
 				'nproc'	=> $nproc,
 				'user'	=> $user,
+				'ssh'	=> $ssh,
 				'paths'	=> [
 					'proc'	=> $base_path.$proc_path,
 					'tmp'	=> $base_path.$tmp_path
@@ -62,9 +63,9 @@ abstract class Procs_queue extends Verbose {
 			if($this->verbose){
 				$this->verbose($e->getMessage(), self::COLOR_RED);
 			}
+			
+			$ssh->disconnect();
 		}
-		
-		$ssh->disconnect();
 	}
 	
 	public function exec(string $base_path, string $proc_path, string $tmp_path){
@@ -112,11 +113,12 @@ abstract class Procs_queue extends Verbose {
 		}
 		else{
 			$ssh = new SSH($this->workers[$proc_slot]['user'], $proc_slot, true);
-			$ssh->exec('sh -c \'echo $$; echo $PPID; php '.$this->workers[$proc_slot]['paths']['proc'].' -v='.$this->verbose.' -data='.$data_base64.'\'');
+			$ssh->exec('sh -c \'echo $PPID; echo $$; php '.$this->workers[$proc_slot]['paths']['proc'].' -v='.$this->verbose.' -data='.$data_base64.'\'');
 			
 			$this->workers[$proc_slot]['procs'][] = [
 				'ssh'	=> $ssh,
 				'uid'	=> '',
+				'pid'	=> 0,
 				'init'	=> false
 			];
 			
@@ -124,6 +126,10 @@ abstract class Procs_queue extends Verbose {
 			$uid 	= "$proc_slot:$k:";
 			
 			$this->workers[$proc_slot]['procs'][$k]['uid'] = $uid;
+			
+			if($this->verbose){
+				$this->verbose("SSH ($uid) started", self::COLOR_GREEN);
+			}
 		}
 		
 		return $uid;
@@ -164,9 +170,25 @@ abstract class Procs_queue extends Verbose {
 		}
 		
 		foreach($this->workers as $host => $worker){
-			foreach($worker['procs'] as $proc){
+			foreach($worker['procs'] as $p => $proc){
 				if($this->verbose){
 					if($pipe_output = $proc['ssh']->get_pipe_stream(SSH::PIPE_STDOUT)){
+						if(!$proc['init']){
+							$this->workers[$host]['procs'][$p]['init'] = true;
+							
+							$pos = strpos($pipe_output, "\n");
+							$ppid = substr($pipe_output, 0, $pos);
+							$pipe_output = substr($pipe_output, $pos+1);
+							
+							$pos = strpos($pipe_output, "\n");
+							$pid = substr($pipe_output, 0, $pos);
+							$pipe_output = substr($pipe_output, $pos+1);
+							
+							$this->workers[$host]['procs'][$p]['pid'] = $pid;
+							
+							$this->workers[$host]['procs'][$p]['uid'] .= "$ppid-$pid";
+						}
+						
 						$this->verbose("SSH $p:", self::COLOR_GRAY);
 						$this->verbose($pipe_output);
 					}
@@ -177,7 +199,9 @@ abstract class Procs_queue extends Verbose {
 					}
 				}
 				
-				print_r($worker);
+				$worker['ssh']->exec('ps -p '.$this->workers[$host]['procs'][$p]['pid'], true);
+				echo $worker['ssh']->output()."\n";
+				
 				exit;
 			}
 		}
@@ -197,7 +221,7 @@ abstract class Procs_queue extends Verbose {
 			$num_procs = count($worker['procs']);
 			if($num_procs < $worker['nproc']){
 				if($this->verbose){
-					$this->verbose("Open proc slot at '$host' ($num_procs/".$worker['nproc'].")", self::COLOR_GRAY);
+					$this->verbose("Open SSH slot at '$host' ($num_procs/".$worker['nproc'].")", self::COLOR_GRAY);
 				}
 				
 				return $host;

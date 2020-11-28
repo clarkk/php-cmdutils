@@ -18,11 +18,13 @@ abstract class Verbose {
 		$this->verbose 	= $verbose;
 	}
 	
-	protected function verbose(string $string, string $color){
-		$string = str_replace("\n", "\n\t> ", $string);
-		
-		if($this->verbose == self::VERBOSE_COLOR){
-			$string = "\033[".$color.'m'.$string."\033[0m";
+	protected function verbose(string $string, string $color=''){
+		if($color){
+			$string = str_replace("\n", "\n\t> ", $string);
+			
+			if($this->verbose == self::VERBOSE_COLOR){
+				$string = "\033[".$color.'m'.$string."\033[0m";
+			}
 		}
 		
 		echo "$string\n";

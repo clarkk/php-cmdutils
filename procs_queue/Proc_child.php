@@ -10,6 +10,8 @@ abstract class Proc_child {
 		sleep(2);
 		echo "hmm\n";
 		sleep(2);
+		fwrite(STDERR, 'An error occurred!');
+		sleep(2);
 		echo "weee\n";
 	}
 }

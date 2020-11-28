@@ -15,7 +15,7 @@ use \Utils\Procs_queue\Worker_init;
 abstract class Procs_queue extends Verbose {
 	use Commands;
 	
-	protected $timeout 	= 999;
+	protected $timeout 	= 9; //999
 	
 	private $nproc;
 	private $procs 		= [];
@@ -89,8 +89,37 @@ abstract class Procs_queue extends Verbose {
 	abstract protected function task_fetch();
 	
 	private function read_proc_streams(){
-		foreach($this->procs as $proc){
-			// dyn
+		if($this->verbose){
+			$this->verbose("Loop started\t\t\t".$this->get_remain_time().' sec', self::COLOR_GRAY);
+		}
+		
+		foreach($this->procs as $p => $proc){
+			if($this->verbose){
+				if($pipe_output = $proc->get_pipe_stream(Cmd::PIPE_STDOUT)){
+					$this->verbose("Proc $p:", self::COLOR_GRAY);
+					$this->verbose($pipe_output);
+				}
+				
+				if($pipe_error = $proc->get_pipe_stream(Cmd::PIPE_STDERR)){
+					$this->verbose("ERROR proc $p:", self::COLOR_RED);
+					$this->verbose($pipe_error);
+				}
+			}
+			
+			if(!$proc->is_running()){
+				if($this->verbose){
+					$verbose = "Proc $p (pid: ".$proc->get_pid().') ';
+					if($proc->is_terminated()){
+						$this->verbose($verbose.' aborted', self::COLOR_YELLOW);
+					}
+					else{
+						$this->verbose($verbose.' completed', self::COLOR_GREEN);
+					}
+				}
+				
+				$proc->close();
+				unset($this->procs[$p]);
+			}
 		}
 	}
 	
@@ -139,7 +168,13 @@ abstract class Procs_queue extends Verbose {
 	}
 	
 	private function check_timeout(): bool{
-		return !$this->is_procs_running() && $this->get_remain_time() >= 0;
+		if($timeout = !$this->is_procs_running() && $this->get_remain_time() >= 0){
+			if($this->verbose){
+				$this->verbose('Timeout!', self::COLOR_GRAY);
+			}
+		}
+		
+		return $timeout;
 	}
 	
 	private function check_localhost(string $base_path, string $proc_path, string $tmp_path){

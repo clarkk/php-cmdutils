@@ -90,7 +90,7 @@ abstract class Procs_queue extends Verbose {
 	
 	private function read_proc_streams(){
 		foreach($this->procs as $proc){
-			//test test
+			//clark
 		}
 	}
 	

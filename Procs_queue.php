@@ -95,21 +95,21 @@ abstract class Procs_queue extends Verbose {
 		
 		foreach($this->procs as $p => $proc){
 			if($this->verbose){
-				if($pipe_output = $proc->get_pipe_stream(Cmd::PIPE_STDOUT)){
+				if($pipe_output = $proc['proc']->get_pipe_stream(Cmd::PIPE_STDOUT)){
 					$this->verbose("Proc $p:", self::COLOR_GRAY);
 					$this->verbose($pipe_output);
 				}
 				
-				if($pipe_error = $proc->get_pipe_stream(Cmd::PIPE_STDERR)){
+				if($pipe_error = $proc['proc']->get_pipe_stream(Cmd::PIPE_STDERR)){
 					$this->verbose("ERROR proc $p:", self::COLOR_RED);
 					$this->verbose($pipe_error);
 				}
 			}
 			
-			if(!$proc->is_running()){
+			if(!$proc['proc']->is_running()){
 				if($this->verbose){
-					$verbose = "Proc $p (pid: ".$proc->get_pid().') ';
-					if($proc->is_terminated()){
+					$verbose = 'Proc ('.$proc['uid'].') ';
+					if($proc['proc']->is_terminated()){
 						$this->verbose($verbose.' aborted', self::COLOR_YELLOW);
 					}
 					else{
@@ -117,7 +117,7 @@ abstract class Procs_queue extends Verbose {
 					}
 				}
 				
-				$proc->close();
+				$proc['proc']->close();
 				unset($this->procs[$p]);
 			}
 		}
@@ -128,19 +128,25 @@ abstract class Procs_queue extends Verbose {
 			$proc = new Cmd(true);
 			$proc->exec('php '.$proc_path.' -v='.$this->verbose.' -data='.base64_encode(serialize($task)));
 			
-			$this->procs[] = $proc;
+			$this->procs[] = [
+				'proc'	=> $proc,
+				'uid'	=> ''
+			];
 			
-			$pid = "$proc_slot:".array_key_last($this->procs).':'.$proc->get_pid();
+			$k 		= array_key_last($this->procs);
+			$uid 	= "$proc_slot:$k:".$proc->get_pid();
+			
+			$this->procs[$k]['uid'] = $uid;
 			
 			if($this->verbose){
-				$this->verbose("Proc ($pid) started", self::COLOR_GREEN);
+				$this->verbose("Proc ($uid) started", self::COLOR_GREEN);
 			}
 		}
 		else{
 			
 		}
 		
-		return $pid;
+		return $uid;
 	}
 	
 	private function get_open_proc_slot(): string{

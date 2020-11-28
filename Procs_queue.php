@@ -15,7 +15,7 @@ use \Utils\Procs_queue\Worker_init;
 abstract class Procs_queue extends Verbose {
 	use Commands;
 	
-	protected $timeout = 9; // 999
+	protected $timeout 	= 999;
 	
 	private $nproc;
 	private $procs 		= [];
@@ -76,63 +76,42 @@ abstract class Procs_queue extends Verbose {
 				break;
 			}
 			
+			$this->read_proc_streams();
+			
 			if($proc_slot = $this->get_open_proc_slot()){
 				if($task = $this->task_fetch()){
 					$this->start_proc($proc_slot, $base_path.$proc_path, $base_path.$tmp_path, $task);
 				}
 			}
-			
-			break;
 		}
 	}
 	
 	abstract protected function task_fetch();
 	
-	/*public function put(string $command){
-		if($this->free_proc_slots()){
-			$proc = new Cmd(true);
-			$proc->exec($command);
-			
-			$pid = $proc->get_pid();
-			
-			if($this->verbose){
-				$this->verbose("Process start (pid: $pid)", self::COLOR_GREEN);
-			}
-		}
-		
-		$this->get_streams();
-	}*/
-	
-	/*private function get_streams(){
-		foreach($this->procs as $pid => $proc){
+	private function read_proc_streams(){
+		foreach($this->procs as $proc){
 			
 		}
-	}*/
+	}
 	
-	/*private function free_proc_slots(): bool{
-		return count($this->procs) < $this->nproc;
-	}*/
-	
-	private function start_proc(string $proc_slot, string $proc_path, string $tmp_path, array $task){
-		print_r($task);
-		
+	private function start_proc(string $proc_slot, string $proc_path, string $tmp_path, array $task): string{
 		if($proc_slot == self::LOCALHOST){
 			$proc = new Cmd(true);
 			$proc->exec('php '.$proc_path.' -v='.$this->verbose.' -data='.base64_encode(serialize($task)));
 			
-			$pid = $proc->get_pid();
-			
 			$this->procs[] = $proc;
 			
-			array_key_last($this->procs);
+			$pid = "$proc_slot:".array_key_last($this->procs).':'.$proc->get_pid();
 			
 			if($this->verbose){
-				//$this->verbose($err, self::COLOR_RED);
+				$this->verbose("Proc ($pid) started", self::COLOR_GREEN);
 			}
 		}
 		else{
 			
 		}
+		
+		return $pid;
 	}
 	
 	private function get_open_proc_slot(): string{

@@ -9,6 +9,7 @@ require_once 'procs_queue/trait_Commands.php';
 require_once 'procs_queue/Worker_init.php';
 
 use \Utils\Cmd\Cmd;
+use \Utils\SSH\SSH;
 use \Utils\SSH\SSH_error;
 use \Utils\Procs_queue\Worker_init;
 
@@ -88,6 +89,46 @@ abstract class Procs_queue extends Verbose {
 	
 	abstract protected function task_fetch();
 	
+	private function start_proc(string $proc_slot, string $proc_path, string $tmp_path, array $task): string{
+		$data_base64 = base64_encode(serialize($task));
+		
+		if($proc_slot == self::LOCALHOST){
+			$proc = new Cmd(true);
+			$proc->exec('php '.$proc_path.' -v='.$this->verbose.' -data='.$data_base64);
+			
+			$this->procs[] = [
+				'proc'	=> $proc,
+				'uid'	=> ''
+			];
+			
+			$k 		= array_key_last($this->procs);
+			$uid 	= "$proc_slot:$k:".$proc->get_pid();
+			
+			$this->procs[$k]['uid'] = $uid;
+			
+			if($this->verbose){
+				$this->verbose("Proc ($uid) started", self::COLOR_GREEN);
+			}
+		}
+		else{
+			$ssh = new SSH($this->workers[$proc_slot]['user'], $proc_slot, true);
+			$ssh->exec('sh -c \'echo $$; echo $PPID; php '.$this->workers[$proc_slot]['paths']['proc'].' -v='.$this->verbose.' -data='.$data_base64.'\'');
+			
+			$this->workers[$proc_slot]['procs'][] = [
+				'ssh'	=> $ssh,
+				'uid'	=> '',
+				'init'	=> false
+			];
+			
+			$k 		= array_key_last($this->workers[$proc_slot]['procs']);
+			$uid 	= "$proc_slot:$k:";
+			
+			$this->workers[$proc_slot]['procs'][$k]['uid'] = $uid;
+		}
+		
+		return $uid;
+	}
+	
 	private function read_proc_streams(){
 		if($this->verbose){
 			$this->verbose("Loop started\t\t\t".$this->get_remain_time().' sec', self::COLOR_GRAY);
@@ -121,32 +162,25 @@ abstract class Procs_queue extends Verbose {
 				unset($this->procs[$p]);
 			}
 		}
-	}
-	
-	private function start_proc(string $proc_slot, string $proc_path, string $tmp_path, array $task): string{
-		if($proc_slot == self::LOCALHOST){
-			$proc = new Cmd(true);
-			$proc->exec('php '.$proc_path.' -v='.$this->verbose.' -data='.base64_encode(serialize($task)));
-			
-			$this->procs[] = [
-				'proc'	=> $proc,
-				'uid'	=> ''
-			];
-			
-			$k 		= array_key_last($this->procs);
-			$uid 	= "$proc_slot:$k:".$proc->get_pid();
-			
-			$this->procs[$k]['uid'] = $uid;
-			
-			if($this->verbose){
-				$this->verbose("Proc ($uid) started", self::COLOR_GREEN);
+		
+		foreach($this->workers as $host => $worker){
+			foreach($worker['procs'] as $proc){
+				if($this->verbose){
+					if($pipe_output = $proc['ssh']->get_pipe_stream(SSH::PIPE_STDOUT)){
+						$this->verbose("SSH $p:", self::COLOR_GRAY);
+						$this->verbose($pipe_output);
+					}
+					
+					if($pipe_error = $proc['ssh']->get_pipe_stream(SSH::PIPE_STDERR)){
+						$this->verbose("ERROR SSH $p:", self::COLOR_RED);
+						$this->verbose($pipe_error);
+					}
+				}
+				
+				print_r($worker);
+				exit;
 			}
 		}
-		else{
-			
-		}
-		
-		return $uid;
 	}
 	
 	private function get_open_proc_slot(): string{

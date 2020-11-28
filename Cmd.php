@@ -59,7 +59,7 @@ class Cmd {
 		}
 	}
 	
-	public function get_pipe_stream(int $pipe){
+	public function get_pipe_stream(int $pipe): string{
 		$output = '';
 		$handle = $this->pipes[$pipe];
 		

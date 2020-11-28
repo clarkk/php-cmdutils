@@ -8,8 +8,12 @@ class SSH extends \Utils\Net\Net_error_codes {
 	private $output 		= '';
 	
 	private $is_stream 		= false;
+	private $pipes 			= [];
 	
 	private $session;
+	
+	const PIPE_STDOUT 		= SSH2_STREAM_STDIO;
+	const PIPE_STDERR 		= SSH2_STREAM_STDERR;
 	
 	const RSA_PRIVATE 		= '/var/ini/.ssh/id_rsa';
 	const RSA_PUBLIC 		= '/var/ini/.ssh/id_rsa.pub';
@@ -34,26 +38,31 @@ class SSH extends \Utils\Net\Net_error_codes {
 		return $trim ? trim($this->output) : $this->output;
 	}
 	
+	public function get_pipe_stream(int $pipe): string{
+		return stream_get_contents($this->pipes[$pipe]);
+	}
+	
 	public function exec(string $command, bool $trim=false){
 		$stream = ssh2_exec($this->session, $command);
-		$pipe_stdout = ssh2_fetch_stream($stream, SSH2_STREAM_STDIO);
-		$pipe_stderr = ssh2_fetch_stream($stream, SSH2_STREAM_STDERR);
+		
+		$this->pipes[self::PIPE_STDOUT] = ssh2_fetch_stream($stream, self::PIPE_STDOUT);
+		$this->pipes[self::PIPE_STDERR] = ssh2_fetch_stream($stream, self::PIPE_STDERR);
 		
 		// 'sh -c \'echo $$; echo $PPID; nproc\''
 		
 		if($this->is_stream){
-			//stream_set_read_buffer($pipe_stdout, 0);
-			//stream_set_read_buffer($pipe_stderr, 0);
+			stream_set_read_buffer($this->pipes[self::PIPE_STDOUT], 0);
+			stream_set_read_buffer($this->pipes[self::PIPE_STDERR], 0);
 			
-			//stream_set_blocking($pipe_stdout, false);
-			//stream_set_blocking($pipe_stderr, false);
+			//stream_set_blocking($this->pipes[self::PIPE_STDOUT], false);
+			//stream_set_blocking($this->pipes[self::PIPE_STDERR], false);
 		}
 		else{
-			stream_set_blocking($pipe_stdout, true);
-			stream_set_blocking($pipe_stderr, true);
+			stream_set_blocking($this->pipes[self::PIPE_STDOUT], true);
+			stream_set_blocking($this->pipes[self::PIPE_STDERR], true);
 			
-			$this->output 	= stream_get_contents($pipe_stdout);
-			$stderr 		= stream_get_contents($pipe_stderr);
+			$this->output 	= stream_get_contents($this->pipes[self::PIPE_STDOUT]);
+			$stderr 		= stream_get_contents($this->pipes[self::PIPE_STDERR]);
 			
 			return $trim ? trim($stderr) : $stderr;
 		}

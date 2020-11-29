@@ -18,7 +18,7 @@ use \Utils\Procs_queue\Worker_init;
 abstract class Procs_queue extends Verbose {
 	use Commands;
 	
-	protected $timeout 	= 9; //999
+	protected $timeout 	= 999;
 	
 	private $nproc;
 	private $procs 		= [];
@@ -106,6 +106,8 @@ abstract class Procs_queue extends Verbose {
 	}
 	
 	abstract protected function task_fetch(): array;
+	abstract protected function task_success(int $id, array $data);
+	abstract protected function task_failed(int $id, array $data);
 	
 	private function start_proc(string $proc_slot, array $data, string $file): string{
 		$data_base64 = base64_encode(serialize($data));

@@ -23,6 +23,14 @@ class Test_queue extends \Utils\Procs_queue\Procs_queue {
 			return [];
 		}
 	}
+	
+	protected function task_success(int $id, array $data){
+		
+	}
+	
+	protected function task_failed(int $id, array $data){
+		
+	}
 }
 
 try{

@@ -12,8 +12,16 @@ class Test_queue extends \Utils\Procs_queue\Procs_queue {
 		['id' => 6]
 	];
 	
-	protected function task_fetch(){
-		return array_pop($this->tasks);
+	protected function task_fetch(): array{
+		if($data = array_pop($this->tasks)){
+			return [
+				'data'	=> $data,
+				'file'	=> '/root/test.pdf'
+			];
+		}
+		else{
+			return [];
+		}
 	}
 }
 

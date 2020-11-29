@@ -11,6 +11,7 @@ class SSH extends \Utils\Net\Net_error_codes {
 	private $pipes 			= [];
 	
 	private $session;
+	private $sftp;
 	
 	const PIPE_STDOUT 		= SSH2_STREAM_STDIO;
 	const PIPE_STDERR 		= SSH2_STREAM_STDERR;
@@ -72,8 +73,13 @@ class SSH extends \Utils\Net\Net_error_codes {
 		}
 	}
 	
-	//$sftp = ssh2_sftp($this->session);
-	//stream_copy_to_stream(fopen("/root/test.pdf", 'r'), fopen("ssh2.sftp://$sftp/root/test.pdf", 'w'));
+	public function upload(string $local, string $remote){
+		if(!$this->sftp){
+			$this->sftp = ssh2_sftp($this->session);
+		}
+		
+		stream_copy_to_stream(fopen($local, 'r'), fopen('ssh2.sftp://'.intval($this->sftp).$remote, 'w'));
+	}
 	
 	public function disconnect(){
 		ssh2_disconnect($this->session);

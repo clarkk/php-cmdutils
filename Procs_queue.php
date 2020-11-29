@@ -90,7 +90,7 @@ abstract class Procs_queue extends Verbose {
 			
 			if($proc_slot = $this->get_open_proc_slot()){
 				if($task = $this->task_fetch()){
-					$this->start_proc($proc_slot, $task);
+					$this->start_proc($proc_slot, $task['data'], $task['file']);
 				}
 				else{
 					$this->verbose('... No pending tasks ...', self::COLOR_GRAY);
@@ -105,16 +105,16 @@ abstract class Procs_queue extends Verbose {
 		}
 	}
 	
-	abstract protected function task_fetch();
+	abstract protected function task_fetch(): array;
 	
-	private function start_proc(string $proc_slot, array $task): string{
-		$data_base64 = base64_encode(serialize($task));
+	private function start_proc(string $proc_slot, array $data, string $file): string{
+		$data_base64 = base64_encode(serialize($data));
 		
 		if($proc_slot == self::LOCALHOST){
-			$tmp_path = $this->task_tmp_path($this->localhost_tmp_path, $task);
+			$tmp_path = $this->task_tmp_path($this->localhost_tmp_path, $data);
 			
 			$proc = new Cmd(true);
-			$proc->exec('mkdir -p '.$tmp_path.'; php '.$this->localhost_proc_path.' -v='.$this->verbose.' -tmp='.$tmp_path.' -data='.$data_base64);
+			$proc->exec('mkdir -p '.$tmp_path.'; cp '.$file.' '.$tmp_path.'; php '.$this->localhost_proc_path.' -v='.$this->verbose.' -tmp='.$tmp_path.' -data='.$data_base64.' -file='.basename($file));
 			
 			$this->procs[] = [
 				'proc'		=> $proc,
@@ -135,12 +135,15 @@ abstract class Procs_queue extends Verbose {
 			}
 		}
 		else{
-			$tmp_path = $this->task_tmp_path($this->workers[$proc_slot]['paths']['tmp'], $task);
+			$tmp_path = $this->task_tmp_path($this->workers[$proc_slot]['paths']['tmp'], $data);
 			
 			$exitcode = $tmp_path.'exitcode';
 			
+			$this->workers[$proc_slot]['ssh']->exec('mkdir -p '.$tmp_path);
+			$this->workers[$proc_slot]['ssh']->upload($file, $tmp_path.basename($file));
+			
 			$ssh = new SSH($this->workers[$proc_slot]['user'], $proc_slot, true);
-			$ssh->exec('sh -c \'echo $PPID; echo $$; mkdir -p '.$tmp_path.'; php '.$this->workers[$proc_slot]['paths']['proc'].' -v='.$this->verbose.' -tmp='.$tmp_path.' -data='.$data_base64.'\'; echo $? > '.$exitcode);
+			$ssh->exec('sh -c \'echo $PPID; echo $$; php '.$this->workers[$proc_slot]['paths']['proc'].' -v='.$this->verbose.' -tmp='.$tmp_path.' -data='.$data_base64.' -file='.basename($file).'\'; echo $? > '.$exitcode);
 			
 			[$ppid, $pid] = explode("\n", $ssh->output(true, true));
 			

@@ -6,7 +6,8 @@ class Test_proc_child extends \Utils\Procs_queue\Proc_child {
 	protected $allowed_argv = [
 		'v',
 		'tmp',
-		'data'
+		'data',
+		'file'
 	];
 }
 

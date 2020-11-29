@@ -32,6 +32,9 @@ abstract class Procs_queue extends Verbose {
 	private $localhost_tmp_path;
 	private $localhost_proc_path;
 	
+	private $redis;
+	private $redis_abort_list;
+	
 	const LOCALHOST 	= 'localhost';
 	
 	public function __construct(string $task_name, int $verbose=0){
@@ -76,6 +79,21 @@ abstract class Procs_queue extends Verbose {
 		}
 	}
 	
+	public function start_redis(string $auth, string $abort_list){
+		try{
+			$this->redis = new \Redis;
+			if(!$this->redis->connect('127.0.0.1')){
+				throw new Procs_queue_error('Redis: Connecting to server failed!');
+			}
+			$this->redis->auth($auth);
+			
+			$this->redis_abort_list = $abort_list;
+		}
+		catch(\RedisException $e){
+			throw new Procs_queue_error('Redis: '.$e->getMessage(), 0, $e);
+		}
+	}
+	
 	public function exec(string $localhost_base_path, string $localhost_proc_path, string $localhost_tmp_path){
 		$this->check_localhost($localhost_base_path, $localhost_proc_path, $localhost_tmp_path);
 		
@@ -100,7 +118,7 @@ abstract class Procs_queue extends Verbose {
 			}
 			
 			if(!$this->is_procs_running()){
-				$this->verbose('... Nothing to do. Sleep 1 sec ...', self::COLOR_GRAY);
+				$this->verbose('... No processing tasks. Sleep 1 sec ...', self::COLOR_GRAY);
 				
 				sleep(1);
 			}
@@ -112,21 +130,21 @@ abstract class Procs_queue extends Verbose {
 	abstract protected function task_failed(int $id, array $data);
 	
 	private function kill_aborted_tasks(){
-		
-		
-		/*if($this->redis->lLen(self::LIST_ABORT)){
-			if($entries = $this->redis->multi()->lRange(self::LIST_ABORT, 0, -1)->del(self::LIST_ABORT)->exec()[0]){
-				foreach($entries as $pid){
-					foreach($this->processes as $process){
+		if($this->redis->lLen($this->redis_abort_list)){
+			if($entries = $this->redis->multi()->lRange($this->redis_abort_list, 0, -1)->del($this->redis_abort_list)->exec()[0]){
+				foreach($entries as $entry){
+					
+					
+					/*foreach($this->processes as $process){
 						if($pid == $process->get_pid()){
 							$this->master_kill_process_tree($pid, self::LIST_FILES.$pid);
 							
 							continue 2;
 						}
-					}
+					}*/
 				}
 			}
-		}*/
+		}
 	}
 	
 	private function start_proc(string $proc_slot, array $data, string $file): string{
@@ -308,13 +326,15 @@ abstract class Procs_queue extends Verbose {
 	}
 	
 	private function check_timeout(): bool{
-		if($timeout = !$this->is_procs_running() && $this->get_remain_time() >= 0){
+		if(!$this->is_procs_running() && $this->get_remain_time() >= 0){
 			if($this->verbose){
 				$this->verbose('Timeout!', self::COLOR_GRAY);
 			}
+			
+			return true;
 		}
 		
-		return $timeout;
+		return false;
 	}
 	
 	private function check_localhost(string $base_path, string $proc_path, string $tmp_path){

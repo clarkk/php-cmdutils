@@ -35,6 +35,7 @@ class Test_queue extends \Utils\Procs_queue\Procs_queue {
 
 try{
 	$Queue = new Test_queue('task_name', Test_queue::VERBOSE_COLOR);
+	$Queue->start_redis('88325840bd016afbb75b133b59219f7b71da5a66', 'scan:invoice:abort');
 	$Queue->add_worker('root', 'worker.dynaccount.com', '/var/www/worker.dynaccount.com/', 'tmp/test_proc.php', 'tmp');
 	$Queue->exec('', 'proc_child.php', 'tmp');
 }

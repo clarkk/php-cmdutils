@@ -2,6 +2,8 @@
 
 namespace Utils\Procs_queue;
 
+if(PHP_SAPI != 'cli') exit;
+
 require_once 'Cmd.php';
 require_once 'SSH.php';
 require_once 'procs_queue/Verbose.php';
@@ -186,11 +188,20 @@ abstract class Procs_queue extends Verbose {
 			if(!$proc['proc']->is_running()){
 				if($this->verbose){
 					$verbose = 'Proc '.$proc['id'];
-					if($proc['proc']->is_terminated()){
-						$this->verbose($verbose.' aborted', self::COLOR_YELLOW);
+					if($proc['proc']->is_success()){
+						$this->verbose($verbose.' completed', self::COLOR_GREEN);
 					}
 					else{
-						$this->verbose($verbose.' completed', self::COLOR_GREEN);
+						if($proc['proc']->is_terminated()){
+							$color 		= self::COLOR_YELLOW;
+							$verbose 	.= ' aborted';
+						}
+						else{
+							$color 		= self::COLOR_RED;
+							$verbose 	.= ' failed';
+						}
+						
+						$this->verbose($verbose.' (exitcode: '.$proc['proc']->get_exitcode().')', $color);
 					}
 				}
 				
@@ -205,8 +216,7 @@ abstract class Procs_queue extends Verbose {
 			echo "host\n";
 			foreach($worker['procs'] as $p => $proc){
 				if($this->verbose){
-					echo "verb proc\n";
-					print_r($proc['ssh']);
+					echo "verb proc ".$proc['id']."\n";
 					if($pipe_output = $proc['ssh']->get_pipe_stream(SSH::PIPE_STDOUT)){
 						$this->verbose('SSH '.$proc['id'], self::COLOR_GRAY);
 						$this->verbose($pipe_output);
@@ -217,8 +227,9 @@ abstract class Procs_queue extends Verbose {
 						$this->verbose($pipe_error);
 					}
 				}
-				
+				echo "ps\n";
 				$worker['ssh']->exec('ps -p '.$proc['pid']);
+				echo "ps done\n";
 				if(!isset(explode("\n", $worker['ssh']->output(true))[1])){
 					$worker['ssh']->exec('cat '.$proc['exitcode']);
 					$exitcode = (int)$worker['ssh']->output(true);
@@ -237,6 +248,8 @@ abstract class Procs_queue extends Verbose {
 					
 					$proc['ssh']->disconnect();
 					unset($this->workers[$host]['procs'][$p]);
+					
+					echo "\t\tDISCONNECT ".$proc['id']."\n";
 				}
 			}
 		}

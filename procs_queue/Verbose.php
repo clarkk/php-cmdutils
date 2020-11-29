@@ -27,7 +27,7 @@ abstract class Verbose {
 	
 	protected function verbose(string $output, string $color=''){
 		if($color){
-			$output = str_replace("\n", self::CRLF."\t> ", $output);
+			$output = $this->output($output);
 			
 			$this->log($output);
 			
@@ -36,11 +36,16 @@ abstract class Verbose {
 			}
 		}
 		else{
-			$output = "\t> ".str_replace("\n", self::CRLF."\t> ", $output);
+			$output = "\t> ".$this->output($output);
+			
 			$this->log($output);
 		}
 		
 		echo $output.self::CRLF;
+	}
+	
+	private function output(string $output): string{
+		return str_replace("\n", self::CRLF."\t> ", $output);
 	}
 	
 	private function log(string $output){

@@ -213,10 +213,8 @@ abstract class Procs_queue extends Verbose {
 		}
 		
 		foreach($this->workers as $host => $worker){
-			echo "host\n";
 			foreach($worker['procs'] as $p => $proc){
 				if($this->verbose){
-					echo "verb proc ".$proc['id']."\n";
 					if($pipe_output = $proc['ssh']->get_pipe_stream(SSH::PIPE_STDOUT)){
 						$this->verbose('SSH '.$proc['id'], self::COLOR_GRAY);
 						$this->verbose($pipe_output);
@@ -227,9 +225,9 @@ abstract class Procs_queue extends Verbose {
 						$this->verbose($pipe_error);
 					}
 				}
-				echo "ps\n";
+				
+				//	Check if proc has stopped running
 				$worker['ssh']->exec('ps -p '.$proc['pid']);
-				echo "ps done\n";
 				if(!isset(explode("\n", $worker['ssh']->output(true))[1])){
 					$worker['ssh']->exec('cat '.$proc['exitcode']);
 					$exitcode = (int)$worker['ssh']->output(true);
@@ -237,7 +235,16 @@ abstract class Procs_queue extends Verbose {
 					if($this->verbose){
 						$verbose = 'SSH '.$proc['id'];
 						if($exitcode){
-							$this->verbose($verbose.' aborted', self::COLOR_YELLOW);
+							if($exitcode == 143){
+								$color 		= self::COLOR_YELLOW;
+								$verbose 	.= ' aborted';
+							}
+							else{
+								$color 		= self::COLOR_RED;
+								$verbose 	.= ' failed';
+							}
+							
+							$this->verbose($verbose.' (exitcode: '.$exitcode.')', $color);
 						}
 						else{
 							$this->verbose($verbose.' completed', self::COLOR_GREEN);
@@ -246,13 +253,13 @@ abstract class Procs_queue extends Verbose {
 					
 					$worker['ssh']->exec('kill '.$proc['ppid'].' '.$proc['pid'].'; rm -r '.$proc['tmp_path']);
 					
-					$proc['ssh']->disconnect();
+					//$proc['ssh']->disconnect();
 					unset($this->workers[$host]['procs'][$p]);
-					
-					echo "\t\tDISCONNECT ".$proc['id']."\n";
 				}
 			}
 		}
+		
+		sleep(5);
 	}
 	
 	private function get_open_proc_slot(): string{

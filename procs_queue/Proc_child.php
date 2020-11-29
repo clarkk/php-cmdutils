@@ -13,6 +13,8 @@ abstract class Proc_child {
 		
 		$this->parse_argv($argv);
 		
+		//print_r($this->args);
+		
 		echo "hey\n";
 		sleep(2);
 		echo "hmm\n";
@@ -30,19 +32,27 @@ abstract class Proc_child {
 	private function parse_argv(array $argv){
 		array_shift($argv);
 		
-		//$this->allowed_argv
-		
 		foreach($argv as $arg){
-			$this->error("Test exit 1");
 			if(substr($arg, 0, 1) != '-'){
 				$this->error("Invalid argument: $arg");
 			}
 			
 			$arg = substr($arg, 1);
 			
-			$pos = strpos($arg, '=');
-			echo "pos: $pos\n";
+			if($pos = strpos($arg, '=')){
+				$key 	= substr($arg, 0, $pos);
+				$value 	= substr($arg, $pos+1);
+			}
+			else{
+				$key 	= $arg;
+				$value 	= '';
+			}
+			
+			if(!in_array($key, $this->allowed_argv)){
+				$this->error("Invalid argument: -$arg");
+			}
+			
+			$this->args[$key] = $value;
 		}
-		print_r($argv);
 	}
 }

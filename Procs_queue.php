@@ -91,8 +91,14 @@ abstract class Procs_queue extends Verbose {
 					$this->start_proc($proc_slot, $task);
 				}
 				else{
-					$this->verbose('... no pending tasks ...', self::COLOR_GRAY);
+					$this->verbose('... No pending tasks ...', self::COLOR_GRAY);
 				}
+			}
+			
+			if(!$this->is_procs_running()){
+				$this->verbose('... Nothing to do. Sleep 1 sec ...', self::COLOR_GRAY);
+				
+				sleep(1);
 			}
 		}
 	}
@@ -106,7 +112,7 @@ abstract class Procs_queue extends Verbose {
 			$tmp_path = $this->task_tmp_path($this->localhost_tmp_path, $task);
 			
 			$proc = new Cmd(true);
-			$proc->exec('php '.$this->localhost_proc_path.' -v='.$this->verbose.' -tmp='.$tmp_path.' -data='.$data_base64);
+			$proc->exec('mkdir -p '.$tmp_path.'; php '.$this->localhost_proc_path.' -v='.$this->verbose.' -tmp='.$tmp_path.' -data='.$data_base64);
 			
 			$this->procs[] = [
 				'proc'		=> $proc,
@@ -132,7 +138,7 @@ abstract class Procs_queue extends Verbose {
 			$exitcode = $tmp_path.'exitcode';
 			
 			$ssh = new SSH($this->workers[$proc_slot]['user'], $proc_slot, true);
-			$ssh->exec('sh -c \'echo $PPID; echo $$; mkdir '.$tmp_path.'; php '.$this->workers[$proc_slot]['paths']['proc'].' -v='.$this->verbose.' -tmp='.$tmp_path.' -data='.$data_base64.'\'; echo $? > '.$exitcode);
+			$ssh->exec('sh -c \'echo $PPID; echo $$; mkdir -p '.$tmp_path.'; php '.$this->workers[$proc_slot]['paths']['proc'].' -v='.$this->verbose.' -tmp='.$tmp_path.' -data='.$data_base64.'\'; echo $? > '.$exitcode);
 			
 			[$ppid, $pid] = explode("\n", $ssh->output(true, true));
 			
@@ -167,12 +173,12 @@ abstract class Procs_queue extends Verbose {
 		foreach($this->procs as $p => $proc){
 			if($this->verbose){
 				if($pipe_output = $proc['proc']->get_pipe_stream(Cmd::PIPE_STDOUT)){
-					$this->verbose('Proc '.$proc['id'].':', self::COLOR_GRAY);
+					$this->verbose('Proc '.$proc['id'], self::COLOR_GRAY);
 					$this->verbose($pipe_output);
 				}
 				
 				if($pipe_error = $proc['proc']->get_pipe_stream(Cmd::PIPE_STDERR)){
-					$this->verbose('ERROR proc '.$proc['id'].':', self::COLOR_RED);
+					$this->verbose('ERROR proc '.$proc['id'], self::COLOR_RED);
 					$this->verbose($pipe_error);
 				}
 			}
@@ -190,27 +196,48 @@ abstract class Procs_queue extends Verbose {
 				
 				$proc['proc']->close();
 				unset($this->procs[$p]);
+				
+				shell_exec('rm -r '.$proc['tmp_path']);
 			}
 		}
 		
 		foreach($this->workers as $host => $worker){
+			echo "host\n";
 			foreach($worker['procs'] as $p => $proc){
 				if($this->verbose){
+					echo "verb proc\n";
+					print_r($proc['ssh']);
 					if($pipe_output = $proc['ssh']->get_pipe_stream(SSH::PIPE_STDOUT)){
-						$this->verbose('SSH '.$proc['id'].':', self::COLOR_GRAY);
+						$this->verbose('SSH '.$proc['id'], self::COLOR_GRAY);
 						$this->verbose($pipe_output);
 					}
 					
 					if($pipe_error = $proc['ssh']->get_pipe_stream(SSH::PIPE_STDERR)){
-						$this->verbose('ERROR SSH '.$proc['id'].':', self::COLOR_RED);
+						$this->verbose('ERROR SSH '.$proc['id'], self::COLOR_RED);
 						$this->verbose($pipe_error);
 					}
 				}
 				
-				$worker['ssh']->exec('ps -p '.$this->workers[$host]['procs'][$p]['pid'], true);
-				$pid = (int)(explode("\n", $worker['ssh']->output(true))[1] ?? 0);
-				
-				// check if ssh proc is running
+				$worker['ssh']->exec('ps -p '.$proc['pid']);
+				if(!isset(explode("\n", $worker['ssh']->output(true))[1])){
+					$worker['ssh']->exec('cat '.$proc['exitcode']);
+					$exitcode = (int)$worker['ssh']->output(true);
+					
+					if($this->verbose){
+						$verbose = 'SSH '.$proc['id'];
+						if($exitcode){
+							$this->verbose($verbose.' aborted', self::COLOR_YELLOW);
+						}
+						else{
+							$this->verbose($verbose.' completed', self::COLOR_GREEN);
+						}
+					}
+					
+					$worker['ssh']->exec('kill '.$proc['ppid'].' '.$proc['pid'].'; rm -r '.$proc['tmp_path']);
+					
+					$proc['ssh']->disconnect();
+					unset($this->workers[$host]['procs'][$p]);
+				}
 			}
 		}
 	}

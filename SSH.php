@@ -76,6 +76,7 @@ class SSH extends \Utils\Net\Net_error_codes {
 	//stream_copy_to_stream(fopen("/root/test.pdf", 'r'), fopen("ssh2.sftp://$sftp/root/test.pdf", 'w'));
 	
 	public function disconnect(){
+		echo "disconnect\n";
 		ssh2_disconnect($this->session);
 	}
 }

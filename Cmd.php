@@ -57,7 +57,9 @@ class Cmd {
 	}
 	
 	public function get_pipe_stream(int $pipe): string{
-		$output = '';
+		return stream_get_contents($this->pipes[$pipe]);
+		
+		/*$output = '';
 		$handle = $this->pipes[$pipe];
 		
 		$arr = [$handle];
@@ -84,7 +86,7 @@ class Cmd {
 			}
 		}
 		
-		return $output;
+		return $output;*/
 	}
 	
 	public function exec(string $command, bool $trim=false){

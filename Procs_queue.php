@@ -205,10 +205,9 @@ abstract class Procs_queue extends Verbose {
 					}
 				}
 				
+				shell_exec('rm -r '.$proc['tmp_path']);
 				$proc['proc']->close();
 				unset($this->procs[$p]);
-				
-				shell_exec('rm -r '.$proc['tmp_path']);
 			}
 		}
 		
@@ -226,7 +225,7 @@ abstract class Procs_queue extends Verbose {
 					}
 				}
 				
-				//	Check if proc has stopped running
+				//	Check if proc has stopped
 				$worker['ssh']->exec('ps -p '.$proc['pid']);
 				if(!isset(explode("\n", $worker['ssh']->output(true))[1])){
 					$worker['ssh']->exec('cat '.$proc['exitcode']);
@@ -252,14 +251,11 @@ abstract class Procs_queue extends Verbose {
 					}
 					
 					$worker['ssh']->exec('kill '.$proc['ppid'].' '.$proc['pid'].'; rm -r '.$proc['tmp_path']);
-					
 					//$proc['ssh']->disconnect();
 					unset($this->workers[$host]['procs'][$p]);
 				}
 			}
 		}
-		
-		sleep(5);
 	}
 	
 	private function get_open_proc_slot(): string{

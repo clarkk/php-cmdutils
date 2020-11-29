@@ -17,19 +17,10 @@ class Test_queue extends \Utils\Procs_queue\Procs_queue {
 	}
 }
 
-// tmp folder taskname_2020-11-26-0932_id
-
 try{
 	$Queue = new Test_queue('task_name', Test_queue::VERBOSE_COLOR);
 	$Queue->add_worker('root', 'worker.dynaccount.com', '/var/www/worker.dynaccount.com/', 'tmp/test_proc.php', 'tmp');
 	$Queue->exec('', 'proc_child.php', 'tmp');
-	
-	/*while($list){
-		$command = reset($list);
-		
-		$Queue->put($command);
-		break;
-	}*/
 }
 catch(\Utils\Procs_queue\Procs_queue_error $e){
 	echo "\n\tTEST FAILED ON URL: ".$e->getMessage()."\n\n";

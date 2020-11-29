@@ -49,7 +49,7 @@ class Cmd {
 			return true;
 		}
 		else{
-			$this->termsig = $status['termsig'] == 9;
+			$this->termsig = in_array($status['termsig'], [SIGKILL, SIGTERM]);
 			
 			if($this->exitcode < 0){
 				$this->exitcode = $status['exitcode'];

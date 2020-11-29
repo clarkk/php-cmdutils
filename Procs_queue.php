@@ -25,12 +25,18 @@ abstract class Procs_queue extends Verbose {
 	
 	private $time_start;
 	
+	private $task_name;
+	
+	private $localhost_tmp_path;
+	private $localhost_proc_path;
+	
 	const LOCALHOST 	= 'localhost';
 	
-	public function __construct(int $verbose=0){
+	public function __construct(string $task_name, int $verbose=0){
 		parent::__construct($verbose);
 		
-		$this->nproc = (int)shell_exec('nproc');
+		$this->nproc 		= (int)shell_exec('nproc');
+		$this->task_name 	= $task_name;
 	}
 	
 	public function add_worker(string $user, string $host, string $base_path, string $proc_path, string $tmp_path){
@@ -68,8 +74,8 @@ abstract class Procs_queue extends Verbose {
 		}
 	}
 	
-	public function exec(string $base_path, string $proc_path, string $tmp_path){
-		$this->check_localhost($base_path, $proc_path, $tmp_path);
+	public function exec(string $localhost_base_path, string $localhost_proc_path, string $localhost_tmp_path){
+		$this->check_localhost($localhost_base_path, $localhost_proc_path, $localhost_tmp_path);
 		
 		$this->start_time();
 		
@@ -82,7 +88,10 @@ abstract class Procs_queue extends Verbose {
 			
 			if($proc_slot = $this->get_open_proc_slot()){
 				if($task = $this->task_fetch()){
-					$this->start_proc($proc_slot, $base_path.$proc_path, $base_path.$tmp_path, $task);
+					$this->start_proc($proc_slot, $task);
+				}
+				else{
+					$this->verbose('... no pending tasks ...', self::COLOR_GRAY);
 				}
 			}
 		}
@@ -90,45 +99,60 @@ abstract class Procs_queue extends Verbose {
 	
 	abstract protected function task_fetch();
 	
-	private function start_proc(string $proc_slot, string $proc_path, string $tmp_path, array $task): string{
+	private function start_proc(string $proc_slot, array $task): string{
 		$data_base64 = base64_encode(serialize($task));
 		
 		if($proc_slot == self::LOCALHOST){
+			$tmp_path = $this->task_tmp_path($this->localhost_tmp_path, $task);
+			
 			$proc = new Cmd(true);
-			$proc->exec('php '.$proc_path.' -v='.$this->verbose.' -data='.$data_base64);
+			$proc->exec('php '.$this->localhost_proc_path.' -v='.$this->verbose.' -data='.$data_base64);
 			
 			$this->procs[] = [
-				'proc'	=> $proc,
-				'uid'	=> ''
+				'proc'		=> $proc,
+				'tmp_path'	=> $tmp_path
 			];
 			
 			$k 		= array_key_last($this->procs);
-			$uid 	= "$proc_slot:$k:".$proc->get_pid();
+			$id 	= "$proc_slot:$k";
+			$pid 	= $proc->get_pid();
+			$uid 	= "$id:$pid";
 			
+			$this->procs[$k]['id']	= $id;
+			$this->procs[$k]['pid']	= $pid;
 			$this->procs[$k]['uid'] = $uid;
 			
 			if($this->verbose){
-				$this->verbose("Proc ($uid) started", self::COLOR_GREEN);
+				$this->verbose("Proc $id (pid: $pid) started", self::COLOR_GREEN);
 			}
 		}
 		else{
+			$tmp_path = $this->task_tmp_path($this->workers[$proc_slot]['paths']['tmp'], $task);
+			
 			$ssh = new SSH($this->workers[$proc_slot]['user'], $proc_slot, true);
-			$ssh->exec('sh -c \'echo $PPID; echo $$; php '.$this->workers[$proc_slot]['paths']['proc'].' -v='.$this->verbose.' -data='.$data_base64.'\'');
+			$ssh->exec('sh -c \'echo $PPID; echo $$; php '.$this->workers[$proc_slot]['paths']['proc'].' -v='.$this->verbose.' -data='.$data_base64.'\'; echo $?');
+			
+			/*$output = $ssh->output(false, true);
+			echo "out: $output\n";
+			exit;*/
 			
 			$this->workers[$proc_slot]['procs'][] = [
-				'ssh'	=> $ssh,
-				'uid'	=> '',
-				'pid'	=> 0,
-				'init'	=> false
+				'ssh'		=> $ssh,
+				'tmp_path'	=> $tmp_path,
+				'init'		=> false
 			];
 			
 			$k 		= array_key_last($this->workers[$proc_slot]['procs']);
-			$uid 	= "$proc_slot:$k:";
+			$id 	= "$proc_slot:$k";
+			$pid 	= 0;
+			$uid 	= "$id:$pid";
 			
-			$this->workers[$proc_slot]['procs'][$k]['uid'] = $uid;
+			$this->workers[$proc_slot]['procs'][$k]['id']	= $id;
+			$this->workers[$proc_slot]['procs'][$k]['pid']	= $pid;
+			$this->workers[$proc_slot]['procs'][$k]['uid']	= $uid;
 			
 			if($this->verbose){
-				$this->verbose("SSH ($uid) started", self::COLOR_GREEN);
+				$this->verbose("SSH $id (pid: $pid) started", self::COLOR_GREEN);
 			}
 		}
 		
@@ -137,25 +161,25 @@ abstract class Procs_queue extends Verbose {
 	
 	private function read_proc_streams(){
 		if($this->verbose){
-			$this->verbose("Loop started\t\t\t".$this->get_remain_time().' sec', self::COLOR_GRAY);
+			$this->verbose("\nLoop started\t\t\t\t\t".$this->get_remain_time().' sec', self::COLOR_GRAY);
 		}
 		
 		foreach($this->procs as $p => $proc){
 			if($this->verbose){
 				if($pipe_output = $proc['proc']->get_pipe_stream(Cmd::PIPE_STDOUT)){
-					$this->verbose("Proc $p:", self::COLOR_GRAY);
+					$this->verbose('Proc '.$proc['id'].':', self::COLOR_GRAY);
 					$this->verbose($pipe_output);
 				}
 				
 				if($pipe_error = $proc['proc']->get_pipe_stream(Cmd::PIPE_STDERR)){
-					$this->verbose("ERROR proc $p:", self::COLOR_RED);
+					$this->verbose('ERROR proc '.$proc['id'].':', self::COLOR_RED);
 					$this->verbose($pipe_error);
 				}
 			}
 			
 			if(!$proc['proc']->is_running()){
 				if($this->verbose){
-					$verbose = 'Proc ('.$proc['uid'].') ';
+					$verbose = 'Proc '.$proc['id'];
 					if($proc['proc']->is_terminated()){
 						$this->verbose($verbose.' aborted', self::COLOR_YELLOW);
 					}
@@ -189,20 +213,20 @@ abstract class Procs_queue extends Verbose {
 							$this->workers[$host]['procs'][$p]['uid'] .= "$ppid-$pid";
 						}
 						
-						$this->verbose("SSH $p:", self::COLOR_GRAY);
+						$this->verbose('SSH '.$proc['id'].':', self::COLOR_GRAY);
 						$this->verbose($pipe_output);
 					}
 					
 					if($pipe_error = $proc['ssh']->get_pipe_stream(SSH::PIPE_STDERR)){
-						$this->verbose("ERROR SSH $p:", self::COLOR_RED);
+						$this->verbose('ERROR SSH '.$proc['id'].':', self::COLOR_RED);
 						$this->verbose($pipe_error);
 					}
 				}
 				
 				$worker['ssh']->exec('ps -p '.$this->workers[$host]['procs'][$p]['pid'], true);
-				echo $worker['ssh']->output()."\n";
+				$pid = (int)(explode("\n", $worker['ssh']->output(true))[1] ?? 0);
 				
-				exit;
+				// check if ssh proc is running
 			}
 		}
 	}
@@ -274,6 +298,13 @@ abstract class Procs_queue extends Verbose {
 		if($this->verbose){
 			$this->verbose("Localhost initiated\nnprocs: $this->nproc\nproc: $proc_path\ntmpfs: $tmp_path", self::COLOR_GREEN);
 		}
+		
+		$this->localhost_tmp_path 	= realpath($base_path.$tmp_path);
+		$this->localhost_proc_path 	= realpath($base_path.$proc_path);
+	}
+	
+	private function task_tmp_path(string $base_path, array $task): string{
+		return $base_path.'/'.date('Y-m-d', time()).'_'.$this->task_name.'_'.$task['id'].'/';
 	}
 	
 	private function is_procs_running(): bool{

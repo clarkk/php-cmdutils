@@ -20,7 +20,7 @@ class Test_queue extends \Utils\Procs_queue\Procs_queue {
 // tmp folder taskname_2020-11-26-0932_id
 
 try{
-	$Queue = new Test_queue(Test_queue::VERBOSE_COLOR);
+	$Queue = new Test_queue('task_name', Test_queue::VERBOSE_COLOR);
 	$Queue->add_worker('root', 'worker.dynaccount.com', '/var/www/worker.dynaccount.com/', 'tmp/test_proc.php', 'tmp');
 	$Queue->exec('', 'proc_child.php', 'tmp');
 	

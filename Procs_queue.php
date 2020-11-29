@@ -86,6 +86,8 @@ abstract class Procs_queue extends Verbose {
 				break;
 			}
 			
+			$this->kill_aborted_tasks();
+			
 			$this->read_proc_streams();
 			
 			if($proc_slot = $this->get_open_proc_slot()){
@@ -108,6 +110,24 @@ abstract class Procs_queue extends Verbose {
 	abstract protected function task_fetch(): array;
 	abstract protected function task_success(int $id, array $data);
 	abstract protected function task_failed(int $id, array $data);
+	
+	private function kill_aborted_tasks(){
+		
+		
+		/*if($this->redis->lLen(self::LIST_ABORT)){
+			if($entries = $this->redis->multi()->lRange(self::LIST_ABORT, 0, -1)->del(self::LIST_ABORT)->exec()[0]){
+				foreach($entries as $pid){
+					foreach($this->processes as $process){
+						if($pid == $process->get_pid()){
+							$this->master_kill_process_tree($pid, self::LIST_FILES.$pid);
+							
+							continue 2;
+						}
+					}
+				}
+			}
+		}*/
+	}
 	
 	private function start_proc(string $proc_slot, array $data, string $file): string{
 		$data_base64 = base64_encode(serialize($data));

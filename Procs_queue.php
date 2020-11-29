@@ -106,7 +106,7 @@ abstract class Procs_queue extends Verbose {
 			$tmp_path = $this->task_tmp_path($this->localhost_tmp_path, $task);
 			
 			$proc = new Cmd(true);
-			$proc->exec('php '.$this->localhost_proc_path.' -v='.$this->verbose.' -data='.$data_base64);
+			$proc->exec('php '.$this->localhost_proc_path.' -v='.$this->verbose.' -tmp='.$tmp_path.' -data='.$data_base64);
 			
 			$this->procs[] = [
 				'proc'		=> $proc,
@@ -129,25 +129,25 @@ abstract class Procs_queue extends Verbose {
 		else{
 			$tmp_path = $this->task_tmp_path($this->workers[$proc_slot]['paths']['tmp'], $task);
 			
-			$ssh = new SSH($this->workers[$proc_slot]['user'], $proc_slot, true);
-			$ssh->exec('sh -c \'echo $PPID; echo $$; php '.$this->workers[$proc_slot]['paths']['proc'].' -v='.$this->verbose.' -data='.$data_base64.'\'; echo $?');
+			$exitcode = $tmp_path.'exitcode';
 			
-			/*$output = $ssh->output(false, true);
-			echo "out: $output\n";
-			exit;*/
+			$ssh = new SSH($this->workers[$proc_slot]['user'], $proc_slot, true);
+			$ssh->exec('sh -c \'echo $PPID; echo $$; mkdir '.$tmp_path.'; php '.$this->workers[$proc_slot]['paths']['proc'].' -v='.$this->verbose.' -tmp='.$tmp_path.' -data='.$data_base64.'\'; echo $? > '.$exitcode);
+			
+			[$ppid, $pid] = explode("\n", $ssh->output(true, true));
 			
 			$this->workers[$proc_slot]['procs'][] = [
 				'ssh'		=> $ssh,
 				'tmp_path'	=> $tmp_path,
-				'init'		=> false
+				'exitcode'	=> $exitcode
 			];
 			
 			$k 		= array_key_last($this->workers[$proc_slot]['procs']);
 			$id 	= "$proc_slot:$k";
-			$pid 	= 0;
-			$uid 	= "$id:$pid";
+			$uid 	= "$id:$ppid:$pid";
 			
 			$this->workers[$proc_slot]['procs'][$k]['id']	= $id;
+			$this->workers[$proc_slot]['procs'][$k]['ppid']	= $ppid;
 			$this->workers[$proc_slot]['procs'][$k]['pid']	= $pid;
 			$this->workers[$proc_slot]['procs'][$k]['uid']	= $uid;
 			
@@ -197,22 +197,6 @@ abstract class Procs_queue extends Verbose {
 			foreach($worker['procs'] as $p => $proc){
 				if($this->verbose){
 					if($pipe_output = $proc['ssh']->get_pipe_stream(SSH::PIPE_STDOUT)){
-						if(!$proc['init']){
-							$this->workers[$host]['procs'][$p]['init'] = true;
-							
-							$pos = strpos($pipe_output, "\n");
-							$ppid = substr($pipe_output, 0, $pos);
-							$pipe_output = substr($pipe_output, $pos+1);
-							
-							$pos = strpos($pipe_output, "\n");
-							$pid = substr($pipe_output, 0, $pos);
-							$pipe_output = substr($pipe_output, $pos+1);
-							
-							$this->workers[$host]['procs'][$p]['pid'] = $pid;
-							
-							$this->workers[$host]['procs'][$p]['uid'] .= "$ppid-$pid";
-						}
-						
 						$this->verbose('SSH '.$proc['id'].':', self::COLOR_GRAY);
 						$this->verbose($pipe_output);
 					}

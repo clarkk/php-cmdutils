@@ -37,7 +37,9 @@ class SSH extends \Utils\Net\Net_error_codes {
 	public function output(bool $trim=false, bool $stream_wait=false): string{
 		if($stream_wait){
 			while(true){
-				
+				if($output = stream_get_contents($this->pipes[self::PIPE_STDOUT])){
+					return $trim ? trim($output) : $output;
+				}
 			}
 		}
 		else{
@@ -55,14 +57,9 @@ class SSH extends \Utils\Net\Net_error_codes {
 		$this->pipes[self::PIPE_STDOUT] = ssh2_fetch_stream($stream, self::PIPE_STDOUT);
 		$this->pipes[self::PIPE_STDERR] = ssh2_fetch_stream($stream, self::PIPE_STDERR);
 		
-		// 'sh -c \'echo $$; echo $PPID; nproc\''
-		
 		if($this->is_stream){
 			stream_set_read_buffer($this->pipes[self::PIPE_STDOUT], 0);
 			stream_set_read_buffer($this->pipes[self::PIPE_STDERR], 0);
-			
-			//stream_set_blocking($this->pipes[self::PIPE_STDOUT], false);
-			//stream_set_blocking($this->pipes[self::PIPE_STDERR], false);
 		}
 		else{
 			stream_set_blocking($this->pipes[self::PIPE_STDOUT], true);

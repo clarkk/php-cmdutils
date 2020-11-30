@@ -13,6 +13,8 @@ class SSH extends \Utils\Net\Net_error_codes {
 	private $session;
 	private $sftp;
 	
+	private $time_last_exec;
+	
 	const PIPE_STDOUT 		= SSH2_STREAM_STDIO;
 	const PIPE_STDERR 		= SSH2_STREAM_STDERR;
 	
@@ -21,7 +23,6 @@ class SSH extends \Utils\Net\Net_error_codes {
 	
 	public function __construct(string $user, string $host, bool $is_stream=false){
 		$this->is_stream = $is_stream;
-		
 		if(!is_readable(self::RSA_PRIVATE) || !is_readable(self::RSA_PUBLIC)){
 			throw new SSH_error('RSA keys not found', self::ERR_INIT);
 		}
@@ -33,6 +34,12 @@ class SSH extends \Utils\Net\Net_error_codes {
 		if(!ssh2_auth_pubkey_file($this->session, $user, self::RSA_PUBLIC, self::RSA_PRIVATE)){
 			throw new SSH_error("Could not authenticate to '$host'", self::ERR_AUTH);
 		}
+		
+		$this->time_last_exec = time();
+	}
+	
+	public function get_idle_time(): int{
+		return time() - $this->time_last_exec;
 	}
 	
 	public function output(bool $trim=false, bool $stream_wait=false): string{
@@ -57,6 +64,8 @@ class SSH extends \Utils\Net\Net_error_codes {
 		
 		$this->pipes[self::PIPE_STDOUT] = ssh2_fetch_stream($stream, self::PIPE_STDOUT);
 		$this->pipes[self::PIPE_STDERR] = ssh2_fetch_stream($stream, self::PIPE_STDERR);
+		
+		$this->time_last_exec = time();
 		
 		if($this->is_stream){
 			stream_set_read_buffer($this->pipes[self::PIPE_STDOUT], 0);

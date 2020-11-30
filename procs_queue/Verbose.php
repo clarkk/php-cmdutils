@@ -25,6 +25,10 @@ abstract class Verbose {
 		file_put_contents($this->log, '');
 	}
 	
+	public function error(string $error){
+		fwrite(STDERR, date('Y-m-d H:i:s', time())." $error".self::CRLF);
+	}
+	
 	protected function verbose(string $output, string $color=''){
 		if($color){
 			$output = $this->output($output);

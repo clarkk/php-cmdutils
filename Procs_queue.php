@@ -18,12 +18,13 @@ use \Utils\Procs_queue\Worker_init;
 abstract class Procs_queue extends Verbose {
 	use Commands;
 	
-	protected $timeout 	= 999;
+	private $timeout 		= 999;
+	private $ssh_timeout 	= 60;
 	
 	private $nproc;
-	private $procs 		= [];
+	private $procs 			= [];
 	
-	private $workers 	= [];
+	private $workers 		= [];
 	
 	private $time_start;
 	
@@ -35,7 +36,7 @@ abstract class Procs_queue extends Verbose {
 	private $redis;
 	private $redis_abort_list;
 	
-	const LOCALHOST 	= 'localhost';
+	const LOCALHOST 		= 'localhost';
 	
 	public function __construct(string $task_name, int $verbose=0){
 		parent::__construct($verbose);
@@ -71,13 +72,18 @@ abstract class Procs_queue extends Verbose {
 					'proc'	=> $base_path.$proc_path,
 					'tmp'	=> $base_path.$tmp_path
 				],
-				'procs'		=> []
+				'procs'		=> [],
+				'ssh_pool'	=> []
 			];
 		}
 		catch(SSH_error $e){
+			$error = $e->getMessage();
+			
 			if($this->verbose){
-				$this->verbose($e->getMessage(), self::COLOR_RED);
+				$this->verbose($error, self::COLOR_RED);
 			}
+			
+			$this->error($error);
 			
 			$ssh->disconnect();
 		}
@@ -87,9 +93,12 @@ abstract class Procs_queue extends Verbose {
 		try{
 			$this->redis = new \Redis;
 			if(!$this->redis->connect('127.0.0.1')){
-				throw new Procs_queue_error('Redis: Connecting to server failed!');
+				throw new \RedisException('Connecting to server failed!');
 			}
-			$this->redis->auth($auth);
+			
+			if(!$this->redis->auth($auth)){
+				throw new \RedisException('Authentication failed!');
+			}
 			
 			$this->redis_abort_list = $abort_list;
 		}
@@ -105,7 +114,7 @@ abstract class Procs_queue extends Verbose {
 		
 		while(true){
 			if($this->check_timeout()){
-				break;
+				return;
 			}
 			
 			$this->kill_aborted_tasks();
@@ -126,6 +135,8 @@ abstract class Procs_queue extends Verbose {
 				
 				sleep(1);
 			}
+			
+			$this->ssh_connection_status();
 		}
 	}
 	
@@ -282,10 +293,33 @@ abstract class Procs_queue extends Verbose {
 			}
 			
 			if($this->verbose){
-				$this->verbose("\t\t\t\t\t\t\t\t\tSSH", self::COLOR_GRAY);
+				$this->verbose("\t\t\t\t\t\t\t\t\tSSH initiated", self::COLOR_GRAY);
 			}
 			
 			return new SSH($this->workers[$proc_slot]['user'], $proc_slot, true);
+		}
+	}
+	
+	private function ssh_connection_status(){
+		foreach($this->workers as $host => &$worker){
+			if($worker['ssh']->get_idle_time() > $this->ssh_timeout){
+				if($this->verbose){
+					$this->verbose("\t\t\t\t\t\t\t\t\tSSH worker status ($host)", self::COLOR_GRAY);
+				}
+				
+				$worker['ssh']->exec('cd ./');
+			}
+			
+			foreach($worker['ssh_pool'] as $k => &$ssh){
+				if($ssh->get_idle_time() > $this->ssh_timeout){
+					if($this->verbose){
+						$this->verbose("\t\t\t\t\t\t\t\t\tSSH timeout ($host) ".(count($worker['ssh_pool']) - 1), self::COLOR_GRAY);
+					}
+					
+					$ssh->disconnect();
+					unset($this->workers[$host]['ssh_pool'][$k]);
+				}
+			}
 		}
 	}
 	

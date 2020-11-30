@@ -126,9 +126,6 @@ abstract class Procs_queue extends Verbose {
 				
 				sleep(1);
 			}
-			
-			// test
-			sleep(2);
 		}
 	}
 	
@@ -144,11 +141,13 @@ abstract class Procs_queue extends Verbose {
 					
 					if($proc[0] == self::LOCALHOST){
 						if($this->procs[$proc[1]]['pid'] == $proc[2]){
-							//$this->kill_process_tree($proc[2]);
+							shell_exec('kill '.$proc[2]);
 						}
 					}
 					else{
-						
+						if($this->workers[$proc[0]]['procs'][$proc[1]]['pid'] == $proc[2]){
+							$this->workers[$proc[0]]['ssh']->exec('kill '.$proc[2]);
+						}
 					}
 				}
 			}
@@ -228,12 +227,9 @@ abstract class Procs_queue extends Verbose {
 			
 			if(!$proc['cmd']->is_running()){
 				if($this->verbose){
-					$exitcode = trim(shell_exec('cat '.$proc['exitcode'].' 2>/dev/null'));
-					if(!strlen($exitcode)){
-						$exitcode = '255';
-					}
+					$exitcode = $this->parse_exitcode(trim(shell_exec('cat '.$proc['exitcode'].' 2>/dev/null')));
 					
-					$this->verbose_proc_complete('Proc '.$proc['id'], (int)$exitcode);
+					$this->verbose_proc_complete('Proc '.$proc['id'], $exitcode);
 				}
 				
 				shell_exec('rm -r '.$proc['tmp_path']);
@@ -251,37 +247,23 @@ abstract class Procs_queue extends Verbose {
 				//	Check if proc has stopped
 				$worker['ssh']->exec('ps --no-headers -p '.$proc['pid']);
 				if(!$worker['ssh']->output(true)){
-					echo "ssh exit\n";
-					exit;
-					
-					$worker['ssh']->exec('cat '.$ssh['exitcode']);
-					$exitcode = (int)$worker['ssh']->output(true, true);
+					$worker['ssh']->exec('cat '.$proc['exitcode'].' 2>/dev/null');
+					$exitcode = $this->parse_exitcode($worker['ssh']->output(true));
 					
 					if($this->verbose){
-						$verbose = 'SSH '.$proc['id'];
-						if($exitcode){
-							if($exitcode == 143){
-								$color 		= self::COLOR_YELLOW;
-								$verbose 	.= ' aborted';
-							}
-							else{
-								$color 		= self::COLOR_RED;
-								$verbose 	.= ' failed';
-							}
-							
-							$this->verbose($verbose.' (exitcode: '.$exitcode.')', $color);
-						}
-						else{
-							$this->verbose($verbose.' completed', self::COLOR_GREEN);
-						}
+						$this->verbose_proc_complete('SSH '.$proc['id'], $exitcode);
 					}
 					
-					$worker['ssh']->exec('kill '.$proc['pid'].'; rm -r '.$proc['tmp_path']);
+					$worker['ssh']->exec('rm -r '.$proc['tmp_path']);
 					//$proc['ssh']->disconnect();
 					unset($this->workers[$host]['procs'][$p]);
 				}
 			}
 		}
+	}
+	
+	private function parse_exitcode(string $exitcode): int{
+		return !strlen($exitcode) ? 255 : (int)$exitcode;
 	}
 	
 	private function verbose_proc_streams($interface, string $proc_id, bool $is_worker=false){

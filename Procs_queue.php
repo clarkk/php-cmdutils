@@ -64,14 +64,14 @@ abstract class Procs_queue extends Verbose {
 			}
 			
 			$this->workers[$host] = [
-				'nproc'	=> $nproc,
-				'user'	=> $user,
-				'ssh'	=> $ssh,
-				'paths'	=> [
+				'nproc'		=> $nproc,
+				'user'		=> $user,
+				'ssh'		=> $ssh,
+				'paths'		=> [
 					'proc'	=> $base_path.$proc_path,
 					'tmp'	=> $base_path.$tmp_path
 				],
-				'procs'	=> []
+				'procs'		=> []
 			];
 		}
 		catch(SSH_error $e){
@@ -188,7 +188,7 @@ abstract class Procs_queue extends Verbose {
 			$this->workers[$proc_slot]['ssh']->exec('mkdir -p '.$tmp_path);
 			$this->workers[$proc_slot]['ssh']->upload($file, $tmp_path.basename($file));
 			
-			$ssh = new SSH($this->workers[$proc_slot]['user'], $proc_slot, true);
+			$ssh = $this->ssh_pool($proc_slot);
 			$ssh->exec($this->cmd_group_subprocs($this->task_php_command($this->workers[$proc_slot]['paths']['proc'], $tmp_path, $data, $file), $exitcode, true));
 			
 			$pid = $ssh->output(true, true);
@@ -255,10 +255,37 @@ abstract class Procs_queue extends Verbose {
 					}
 					
 					$worker['ssh']->exec('rm -r '.$proc['tmp_path']);
-					//$proc['ssh']->disconnect();
+					$this->ssh_pool($host, $proc['ssh']);
 					unset($this->workers[$host]['procs'][$p]);
 				}
 			}
+		}
+	}
+	
+	private function ssh_pool(string $proc_slot, SSH $ssh=null): ?SSH{
+		if($ssh){
+			$this->workers[$proc_slot]['ssh_pool'][] = $ssh;
+			
+			if($this->verbose){
+				$this->verbose("\t\t\t\t\t\t\t\t\tSSH --> Pool ".count($this->workers[$proc_slot]['ssh_pool']), self::COLOR_GRAY);
+			}
+			
+			return null;
+		}
+		else{
+			if($this->workers[$proc_slot]['ssh_pool']){
+				if($this->verbose){
+					$this->verbose("\t\t\t\t\t\t\t\t\tSSH <-- Pool ".(count($this->workers[$proc_slot]['ssh_pool']) - 1), self::COLOR_GRAY);
+				}
+				
+				return array_shift($this->workers[$proc_slot]['ssh_pool']);
+			}
+			
+			if($this->verbose){
+				$this->verbose("\t\t\t\t\t\t\t\t\tSSH", self::COLOR_GRAY);
+			}
+			
+			return new SSH($this->workers[$proc_slot]['user'], $proc_slot, true);
 		}
 	}
 	
@@ -414,6 +441,16 @@ abstract class Procs_queue extends Verbose {
 		}
 		
 		$this->time_start = time();
+	}
+	
+	public function __destruct(){
+		foreach($this->workers as $host => $worker){
+			$worker['ssh']->disconnect();
+			
+			foreach($worker['ssh_pool'] as $ssh){
+				$ssh->disconnect();
+			}
+		}
 	}
 }
 

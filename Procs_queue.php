@@ -44,7 +44,7 @@ abstract class Procs_queue extends Verbose {
 		$this->task_name 	= $task_name;
 		
 		if($this->verbose){
-			$this->verbose('Procs queue \''.$this->task_name.'\' (pid: '.getmypid().')', self::COLOR_GREEN);
+			$this->verbose('Procs queue \''.$this->task_name.'\' (pid: '.getmypid().') running as \''.posix_getpwuid(posix_geteuid())['name'].'\'', self::COLOR_GREEN);
 		}
 	}
 	
@@ -128,7 +128,7 @@ abstract class Procs_queue extends Verbose {
 			}
 			
 			// test
-			sleep(2);
+			//sleep(2);
 		}
 	}
 	
@@ -158,6 +158,11 @@ abstract class Procs_queue extends Verbose {
 	protected function kill_process_tree(string $pid, string $worker=''){
 		echo shell_exec('ps -o pid= -o cmd= --ppid '.$pid);
 		exit;
+		
+		// ps --forest --no-headers -o pid,cmd -g $(ps -o sid= -p 2795)
+		// ps -o pid= --ppid 123
+		
+		// kill $(ps -o pid= --ppid $$)
 		
 		$pid = (int)$pid;
 		foreach(array_filter(array_map('trim', explode("\n", shell_exec('ps -o pid= -o cmd= --ppid '.$pid)))) as $ps){
@@ -189,13 +194,15 @@ abstract class Procs_queue extends Verbose {
 	}
 	
 	private function start_proc(string $proc_slot, array $data, string $file): string{
-		$data_base64 = base64_encode(serialize($data));
+		// unshare -fp --kill-child -- bash -c "watch /bin/sleep 10000 && echo hi"
 		
 		if($proc_slot == self::LOCALHOST){
 			$tmp_path = $this->task_tmp_path($this->localhost_tmp_path, $data);
 			
+			//$this->cmd_kill_subtree();
+			
 			$proc = new Cmd(true);
-			$proc->exec('mkdir -p '.$tmp_path.'; cp '.$file.' '.$tmp_path.'; php '.$this->localhost_proc_path.' -v='.$this->verbose.' -tmp='.$tmp_path.' -data='.$data_base64.' -file='.basename($file));
+			$proc->exec('mkdir -p '.$tmp_path.'; cp '.$file.' '.$tmp_path.'; '.$this->php_command($this->localhost_proc_path, $tmp_path, $data, $file));
 			
 			$this->procs[] = [
 				'proc'		=> $proc,
@@ -224,7 +231,7 @@ abstract class Procs_queue extends Verbose {
 			$this->workers[$proc_slot]['ssh']->upload($file, $tmp_path.basename($file));
 			
 			$ssh = new SSH($this->workers[$proc_slot]['user'], $proc_slot, true);
-			$ssh->exec('sh -c \'echo $PPID; echo $$; php '.$this->workers[$proc_slot]['paths']['proc'].' -v='.$this->verbose.' -tmp='.$tmp_path.' -data='.$data_base64.' -file='.basename($file).'\'; echo $? > '.$exitcode);
+			$ssh->exec('sh -c \'echo $PPID; echo $$; '.$this->php_command($this->workers[$proc_slot]['paths']['proc'], $tmp_path, $data, $file).'\'; echo $? > '.$exitcode);
 			
 			[$ppid, $pid] = explode("\n", $ssh->output(true, true));
 			
@@ -418,6 +425,10 @@ abstract class Procs_queue extends Verbose {
 	
 	private function task_tmp_path(string $base_path, array $task): string{
 		return $base_path.'/'.date('Y-m-d', time()).'_'.$this->task_name.'_'.$task['id'].'/';
+	}
+	
+	private function php_command(string $php_path, string $tmp_path, array $data, string $file): string{
+		return 'php '.$php_path.' -v='.$this->verbose.' -tmp='.$tmp_path.' -data='.base64_encode(serialize($data)).' -file='.basename($file);
 	}
 	
 	private function is_procs_running(): bool{

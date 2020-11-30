@@ -232,9 +232,7 @@ abstract class Procs_queue extends Verbose {
 		}
 		
 		foreach($this->procs as $p => $proc){
-			if($this->verbose){
-				$this->verbose_proc_streams($proc['cmd'], $proc['id']);
-			}
+			$this->read_proc_stream($proc['cmd'], $proc['id']);
 			
 			if(!$proc['cmd']->is_running()){
 				if($this->verbose){
@@ -251,9 +249,7 @@ abstract class Procs_queue extends Verbose {
 		
 		foreach($this->workers as $host => $worker){
 			foreach($worker['procs'] as $p => $proc){
-				if($this->verbose){
-					$this->verbose_proc_streams($proc['ssh'], $proc['id'], true);
-				}
+				$this->read_proc_stream($proc['ssh'], $proc['id'], true);
 				
 				//	Check if proc has stopped
 				$worker['ssh']->exec('ps --no-headers -p '.$proc['pid']);
@@ -327,7 +323,7 @@ abstract class Procs_queue extends Verbose {
 		return !strlen($exitcode) ? 255 : (int)$exitcode;
 	}
 	
-	private function verbose_proc_streams($interface, string $proc_id, bool $is_worker=false){
+	private function read_proc_stream($interface, string $proc_id, bool $is_worker=false){
 		if($is_worker){
 			$verbose 	= 'SSH '.$proc_id;
 			$stdout 	= SSH::PIPE_STDOUT;
@@ -340,13 +336,17 @@ abstract class Procs_queue extends Verbose {
 		}
 		
 		if($pipe_output = $interface->get_pipe_stream($stdout)){
-			$this->verbose($verbose, self::COLOR_GRAY);
-			$this->verbose($pipe_output);
+			if($this->verbose){
+				$this->verbose($verbose, self::COLOR_GRAY);
+				$this->verbose($pipe_output);
+			}
 		}
 		
 		if($pipe_error = $interface->get_pipe_stream($stderr)){
-			$this->verbose('ERROR '.$verbose, self::COLOR_RED);
-			$this->verbose($pipe_error);
+			if($this->verbose){
+				$this->verbose('ERROR '.$verbose, self::COLOR_RED);
+				$this->verbose($pipe_error);
+			}
 		}
 	}
 	

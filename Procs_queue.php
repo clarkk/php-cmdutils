@@ -42,6 +42,10 @@ abstract class Procs_queue extends Verbose {
 		
 		$this->nproc 		= (int)shell_exec('nproc');
 		$this->task_name 	= $task_name;
+		
+		if($this->verbose){
+			$this->verbose('Procs queue \''.$this->task_name.'\' (pid: '.getmypid().')', self::COLOR_GREEN);
+		}
 	}
 	
 	public function add_worker(string $user, string $host, string $base_path, string $proc_path, string $tmp_path){
@@ -122,6 +126,9 @@ abstract class Procs_queue extends Verbose {
 				
 				sleep(1);
 			}
+			
+			// test
+			sleep(2);
 		}
 	}
 	
@@ -133,18 +140,52 @@ abstract class Procs_queue extends Verbose {
 		if($this->redis->lLen($this->redis_abort_list)){
 			if($entries = $this->redis->multi()->lRange($this->redis_abort_list, 0, -1)->del($this->redis_abort_list)->exec()[0]){
 				foreach($entries as $entry){
+					$proc = explode(':', $entry);
 					
-					
-					/*foreach($this->processes as $process){
-						if($pid == $process->get_pid()){
-							$this->master_kill_process_tree($pid, self::LIST_FILES.$pid);
-							
-							continue 2;
+					if($proc[0] == self::LOCALHOST){
+						if($this->procs[$proc[1]]['pid'] == $proc[2]){
+							$this->kill_process_tree($proc[2]);
 						}
-					}*/
+					}
+					else{
+						
+					}
 				}
 			}
 		}
+	}
+	
+	protected function kill_process_tree(string $pid, string $worker=''){
+		echo shell_exec('ps -o pid= -o cmd= --ppid '.$pid);
+		exit;
+		
+		$pid = (int)$pid;
+		foreach(array_filter(array_map('trim', explode("\n", shell_exec('ps -o pid= -o cmd= --ppid '.$pid)))) as $ps){
+			echo "$ps\n\n";
+		}
+		
+		if($worker){
+			
+		}
+		else{
+			//
+		}
+		
+		exit;
+		
+		/*
+		foreach(array_filter(array_map('trim', explode("\n", shell_exec('ps -o pid= -o cmd= --ppid '.$pid)))) as $ps){
+			if($list_files && !strpos($ps, 'php '.CWD)){
+				return;
+			}
+			
+			if($this->verbose){
+				echo $this->output("> Kill process: $ps", self::COLOR_YELLOW)."\n";
+			}
+			
+			posix_kill($pid, 9);
+			$this->kill_process_tree($ps);
+		}*/
 	}
 	
 	private function start_proc(string $proc_slot, array $data, string $file): string{
@@ -269,8 +310,8 @@ abstract class Procs_queue extends Verbose {
 				}
 				
 				//	Check if proc has stopped
-				$worker['ssh']->exec('ps -p '.$proc['pid']);
-				if(!isset(explode("\n", $worker['ssh']->output(true))[1])){
+				$worker['ssh']->exec('ps --no-headers -p '.$proc['pid']);
+				if(!$worker['ssh']->output(true)){
 					$worker['ssh']->exec('cat '.$proc['exitcode']);
 					$exitcode = (int)$worker['ssh']->output(true);
 					

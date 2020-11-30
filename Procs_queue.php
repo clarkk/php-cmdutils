@@ -44,7 +44,7 @@ abstract class Procs_queue extends Verbose {
 		$this->task_name 	= $task_name;
 		
 		if($this->verbose){
-			$this->verbose('Procs queue \''.$this->task_name.'\' (pid: '.getmypid().') running as \''.posix_getpwuid(posix_geteuid())['name'].'\'', self::COLOR_GREEN);
+			$this->verbose('Procs queue \''.$this->task_name.'\' (pid: '.getmypid().') running as \''.trim(shell_exec('whoami')).'\'', self::COLOR_GREEN);
 		}
 	}
 	
@@ -128,7 +128,7 @@ abstract class Procs_queue extends Verbose {
 			}
 			
 			// test
-			//sleep(2);
+			sleep(2);
 		}
 	}
 	
@@ -144,7 +144,7 @@ abstract class Procs_queue extends Verbose {
 					
 					if($proc[0] == self::LOCALHOST){
 						if($this->procs[$proc[1]]['pid'] == $proc[2]){
-							$this->kill_process_tree($proc[2]);
+							//$this->kill_process_tree($proc[2]);
 						}
 					}
 					else{
@@ -155,58 +155,18 @@ abstract class Procs_queue extends Verbose {
 		}
 	}
 	
-	protected function kill_process_tree(string $pid, string $worker=''){
-		echo shell_exec('ps -o pid= -o cmd= --ppid '.$pid);
-		exit;
-		
-		// ps --forest --no-headers -o pid,cmd -g $(ps -o sid= -p 2795)
-		// ps -o pid= --ppid 123
-		
-		// kill $(ps -o pid= --ppid $$)
-		
-		$pid = (int)$pid;
-		foreach(array_filter(array_map('trim', explode("\n", shell_exec('ps -o pid= -o cmd= --ppid '.$pid)))) as $ps){
-			echo "$ps\n\n";
-		}
-		
-		if($worker){
-			
-		}
-		else{
-			//
-		}
-		
-		exit;
-		
-		/*
-		foreach(array_filter(array_map('trim', explode("\n", shell_exec('ps -o pid= -o cmd= --ppid '.$pid)))) as $ps){
-			if($list_files && !strpos($ps, 'php '.CWD)){
-				return;
-			}
-			
-			if($this->verbose){
-				echo $this->output("> Kill process: $ps", self::COLOR_YELLOW)."\n";
-			}
-			
-			posix_kill($pid, 9);
-			$this->kill_process_tree($ps);
-		}*/
-	}
-	
 	private function start_proc(string $proc_slot, array $data, string $file): string{
-		// unshare -fp --kill-child -- bash -c "watch /bin/sleep 10000 && echo hi"
-		
 		if($proc_slot == self::LOCALHOST){
 			$tmp_path = $this->task_tmp_path($this->localhost_tmp_path, $data);
-			
-			//$this->cmd_kill_subtree();
+			$exitcode = $tmp_path.'exitcode';
 			
 			$proc = new Cmd(true);
-			$proc->exec('mkdir -p '.$tmp_path.'; cp '.$file.' '.$tmp_path.'; '.$this->php_command($this->localhost_proc_path, $tmp_path, $data, $file));
+			$proc->exec('mkdir -p '.$tmp_path.'; cp '.$file.' '.$tmp_path.'; '.$this->cmd_group_subprocs($this->task_php_command($this->localhost_proc_path, $tmp_path, $data, $file), $exitcode));
 			
 			$this->procs[] = [
-				'proc'		=> $proc,
-				'tmp_path'	=> $tmp_path
+				'cmd'		=> $proc,
+				'tmp_path'	=> $tmp_path,
+				'exitcode'	=> $exitcode
 			];
 			
 			$k 		= array_key_last($this->procs);
@@ -224,16 +184,15 @@ abstract class Procs_queue extends Verbose {
 		}
 		else{
 			$tmp_path = $this->task_tmp_path($this->workers[$proc_slot]['paths']['tmp'], $data);
-			
 			$exitcode = $tmp_path.'exitcode';
 			
 			$this->workers[$proc_slot]['ssh']->exec('mkdir -p '.$tmp_path);
 			$this->workers[$proc_slot]['ssh']->upload($file, $tmp_path.basename($file));
 			
 			$ssh = new SSH($this->workers[$proc_slot]['user'], $proc_slot, true);
-			$ssh->exec('sh -c \'echo $PPID; echo $$; '.$this->php_command($this->workers[$proc_slot]['paths']['proc'], $tmp_path, $data, $file).'\'; echo $? > '.$exitcode);
+			$ssh->exec($this->cmd_group_subprocs($this->task_php_command($this->workers[$proc_slot]['paths']['proc'], $tmp_path, $data, $file), $exitcode, true));
 			
-			[$ppid, $pid] = explode("\n", $ssh->output(true, true));
+			$pid = $ssh->output(true, true);
 			
 			$this->workers[$proc_slot]['procs'][] = [
 				'ssh'		=> $ssh,
@@ -243,10 +202,9 @@ abstract class Procs_queue extends Verbose {
 			
 			$k 		= array_key_last($this->workers[$proc_slot]['procs']);
 			$id 	= "$proc_slot:$k";
-			$uid 	= "$id:$ppid:$pid";
+			$uid 	= "$id:$pid";
 			
 			$this->workers[$proc_slot]['procs'][$k]['id']	= $id;
-			$this->workers[$proc_slot]['procs'][$k]['ppid']	= $ppid;
 			$this->workers[$proc_slot]['procs'][$k]['pid']	= $pid;
 			$this->workers[$proc_slot]['procs'][$k]['uid']	= $uid;
 			
@@ -265,39 +223,21 @@ abstract class Procs_queue extends Verbose {
 		
 		foreach($this->procs as $p => $proc){
 			if($this->verbose){
-				if($pipe_output = $proc['proc']->get_pipe_stream(Cmd::PIPE_STDOUT)){
-					$this->verbose('Proc '.$proc['id'], self::COLOR_GRAY);
-					$this->verbose($pipe_output);
-				}
-				
-				if($pipe_error = $proc['proc']->get_pipe_stream(Cmd::PIPE_STDERR)){
-					$this->verbose('ERROR proc '.$proc['id'], self::COLOR_RED);
-					$this->verbose($pipe_error);
-				}
+				$this->verbose_proc_streams($proc['cmd'], $proc['id']);
 			}
 			
-			if(!$proc['proc']->is_running()){
+			if(!$proc['cmd']->is_running()){
 				if($this->verbose){
-					$verbose = 'Proc '.$proc['id'];
-					if($proc['proc']->is_success()){
-						$this->verbose($verbose.' completed', self::COLOR_GREEN);
+					$exitcode = trim(shell_exec('cat '.$proc['exitcode'].' 2>/dev/null'));
+					if(!strlen($exitcode)){
+						$exitcode = '255';
 					}
-					else{
-						if($proc['proc']->is_terminated()){
-							$color 		= self::COLOR_YELLOW;
-							$verbose 	.= ' aborted';
-						}
-						else{
-							$color 		= self::COLOR_RED;
-							$verbose 	.= ' failed';
-						}
-						
-						$this->verbose($verbose.' (exitcode: '.$proc['proc']->get_exitcode().')', $color);
-					}
+					
+					$this->verbose_proc_complete('Proc '.$proc['id'], (int)$exitcode);
 				}
 				
 				shell_exec('rm -r '.$proc['tmp_path']);
-				$proc['proc']->close();
+				$proc['cmd']->close();
 				unset($this->procs[$p]);
 			}
 		}
@@ -305,22 +245,17 @@ abstract class Procs_queue extends Verbose {
 		foreach($this->workers as $host => $worker){
 			foreach($worker['procs'] as $p => $proc){
 				if($this->verbose){
-					if($pipe_output = $proc['ssh']->get_pipe_stream(SSH::PIPE_STDOUT)){
-						$this->verbose('SSH '.$proc['id'], self::COLOR_GRAY);
-						$this->verbose($pipe_output);
-					}
-					
-					if($pipe_error = $proc['ssh']->get_pipe_stream(SSH::PIPE_STDERR)){
-						$this->verbose('ERROR SSH '.$proc['id'], self::COLOR_RED);
-						$this->verbose($pipe_error);
-					}
+					$this->verbose_proc_streams($proc['ssh'], $proc['id'], true);
 				}
 				
 				//	Check if proc has stopped
 				$worker['ssh']->exec('ps --no-headers -p '.$proc['pid']);
 				if(!$worker['ssh']->output(true)){
-					$worker['ssh']->exec('cat '.$proc['exitcode']);
-					$exitcode = (int)$worker['ssh']->output(true);
+					echo "ssh exit\n";
+					exit;
+					
+					$worker['ssh']->exec('cat '.$ssh['exitcode']);
+					$exitcode = (int)$worker['ssh']->output(true, true);
 					
 					if($this->verbose){
 						$verbose = 'SSH '.$proc['id'];
@@ -341,12 +276,54 @@ abstract class Procs_queue extends Verbose {
 						}
 					}
 					
-					$worker['ssh']->exec('kill '.$proc['ppid'].' '.$proc['pid'].'; rm -r '.$proc['tmp_path']);
+					$worker['ssh']->exec('kill '.$proc['pid'].'; rm -r '.$proc['tmp_path']);
 					//$proc['ssh']->disconnect();
 					unset($this->workers[$host]['procs'][$p]);
 				}
 			}
 		}
+	}
+	
+	private function verbose_proc_streams($interface, string $proc_id, bool $is_worker=false){
+		if($is_worker){
+			$verbose 	= 'SSH '.$proc_id;
+			$stdout 	= SSH::PIPE_STDOUT;
+			$stderr 	= SSH::PIPE_STDERR;
+		}
+		else{
+			$verbose 	= 'Proc '.$proc_id;
+			$stdout 	= Cmd::PIPE_STDOUT;
+			$stderr 	= Cmd::PIPE_STDERR;
+		}
+		
+		if($pipe_output = $interface->get_pipe_stream($stdout)){
+			$this->verbose($verbose, self::COLOR_GRAY);
+			$this->verbose($pipe_output);
+		}
+		
+		if($pipe_error = $interface->get_pipe_stream($stderr)){
+			$this->verbose('ERROR '.$verbose, self::COLOR_RED);
+			$this->verbose($pipe_error);
+		}
+	}
+	
+	private function verbose_proc_complete(string $verbose, int $exitcode){
+		if($exitcode){
+			if($exitcode == 255){
+				$color 		= self::COLOR_YELLOW;
+				$verbose 	.= ' aborted';
+			}
+			else{
+				$color 		= self::COLOR_RED;
+				$verbose 	.= ' failed';
+			}
+		}
+		else{
+			$color 		= self::COLOR_GREEN;
+			$verbose 	.= ' success';
+		}
+		
+		$this->verbose($verbose.' (exitcode: '.$exitcode.')', $color);
 	}
 	
 	private function get_open_proc_slot(): string{
@@ -427,7 +404,7 @@ abstract class Procs_queue extends Verbose {
 		return $base_path.'/'.date('Y-m-d', time()).'_'.$this->task_name.'_'.$task['id'].'/';
 	}
 	
-	private function php_command(string $php_path, string $tmp_path, array $data, string $file): string{
+	private function task_php_command(string $php_path, string $tmp_path, array $data, string $file): string{
 		return 'php '.$php_path.' -v='.$this->verbose.' -tmp='.$tmp_path.' -data='.base64_encode(serialize($data)).' -file='.basename($file);
 	}
 	

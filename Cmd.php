@@ -21,8 +21,17 @@ class Cmd {
 		$this->is_stream = $is_stream;
 	}
 	
-	public function output(bool $trim=false): string{
-		return $trim ? trim($this->output) : $this->output;
+	public function output(bool $trim=false, bool $stream_wait=false): string{
+		if($stream_wait){
+			while(true){
+				if($output = stream_get_contents($this->pipes[self::PIPE_STDOUT])){
+					return $trim ? trim($output) : $output;
+				}
+			}
+		}
+		else{
+			return $trim ? trim($this->output) : $this->output;
+		}
 	}
 	
 	public function is_success(): bool{

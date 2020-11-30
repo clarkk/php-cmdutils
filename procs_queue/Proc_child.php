@@ -15,13 +15,16 @@ abstract class Proc_child {
 		
 		//print_r($this->args);
 		
-		echo "hey\n";
+		echo "line 1\n";
 		sleep(2);
-		echo "hmm\n";
+		echo "line 2\n";
 		sleep(2);
-		fwrite(STDERR, 'An error occurred!');
+		//fwrite(STDERR, 'An error occurred!');
+		echo "line 3\n";
 		sleep(2);
-		echo "weee\n";
+		echo "line 4\n";
+		sleep(2);
+		echo "line 5 (last)\n";
 	}
 	
 	protected function error(string $error){

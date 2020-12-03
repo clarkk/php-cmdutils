@@ -93,9 +93,10 @@ class Net extends Net_error_codes {
 		}
 		
 		$code = curl_getinfo($this->curl, CURLINFO_HTTP_CODE);
+		$type = $this->get_content_type();
 		
 		if($this->decode_type){
-			switch($this->get_content_type()){
+			switch($type){
 				case self::CONTENT_TYPE_JSON:
 					$this->decode_json($response);
 					break;
@@ -108,6 +109,7 @@ class Net extends Net_error_codes {
 		
 		return [
 			'code'		=> $code,
+			'type'		=> $type,
 			'response'	=> $response
 		];
 	}

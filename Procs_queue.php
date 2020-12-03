@@ -93,11 +93,11 @@ abstract class Procs_queue extends Verbose {
 		try{
 			$this->redis = new \Redis;
 			if(!$this->redis->connect('127.0.0.1')){
-				throw new \RedisException('Connecting to server failed!');
+				throw new \RedisException('Connecting to server failed');
 			}
 			
 			if(!$this->redis->auth($auth)){
-				throw new \RedisException('Authentication failed!');
+				throw new \RedisException('Authentication failed');
 			}
 			
 			$this->redis_abort_list = $abort_list;

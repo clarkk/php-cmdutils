@@ -2,8 +2,6 @@
 
 namespace Utils\Net;
 
-require_once 'Net_error_codes.php';
-
 class Net extends Net_error_codes {
 	private $curl;	
 	private $keep_alive 	= false;

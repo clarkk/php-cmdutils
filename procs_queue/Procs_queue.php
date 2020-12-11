@@ -4,16 +4,12 @@ namespace Utils\Procs_queue;
 
 if(PHP_SAPI != 'cli') exit;
 
-require_once 'Cmd.php';
-require_once 'SSH.php';
-require_once 'procs_queue/Verbose.php';
-require_once 'procs_queue/trait_Commands.php';
-require_once 'procs_queue/Worker_init.php';
-
 use \Utils\Cmd\Cmd;
 use \Utils\SSH\SSH;
 use \Utils\SSH\SSH_error;
 use \Utils\Procs_queue\Worker_init;
+
+require_once 'trait_Commands.php';
 
 abstract class Procs_queue extends Verbose {
 	use Commands;

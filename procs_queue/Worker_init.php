@@ -2,9 +2,9 @@
 
 namespace Utils\Procs_queue;
 
-require_once 'trait_Commands.php';
-
 use \Utils\SSH\SSH_error;
+
+require_once 'trait_Commands.php';
 
 class Worker_init extends \Utils\SSH\SSH {
 	use Commands;

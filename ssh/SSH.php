@@ -2,8 +2,6 @@
 
 namespace Utils\SSH;
 
-require_once 'Net_error_codes.php';
-
 class SSH extends \Utils\Net\Net_error_codes {
 	private $output 		= '';
 	

@@ -444,7 +444,7 @@ abstract class Procs_queue extends Verbose {
 	}
 	
 	private function task_tmp_path(string $base_path, array $task): string{
-		return $base_path.'/'.date('Y-m-d', time()).'_'.$this->task_name.'_'.$task['id'].'/';
+		return $base_path.'/'.date('Y-m-d-His', time() + (new \DateTimeZone('Europe/Copenhagen'))->getOffset(new \DateTime('now'))).'_'.$this->task_name.'_'.$task['id'].'/';
 	}
 	
 	private function task_php_command(string $php_path, string $tmp_path, array $data, string $file): string{

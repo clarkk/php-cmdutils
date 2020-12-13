@@ -1,6 +1,5 @@
 <?php
 
-
 namespace Utils\Cmd;
 
 class Cmd {

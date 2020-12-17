@@ -4,11 +4,7 @@ namespace Utils\Procs_queue;
 
 use \Utils\SSH\SSH_error;
 
-require_once 'trait_Commands.php';
-
 class Worker_init extends \Utils\SSH\SSH {
-	use Commands;
-	
 	public function get_nproc(): int{
 		$this->exec('nproc');
 		
@@ -30,7 +26,7 @@ class Worker_init extends \Utils\SSH\SSH {
 			throw new SSH_error("tmp path not found: $tmp_path", self::ERR_PROCESS);
 		}
 		
-		$this->exec($this->cmd_set_tmpfs($tmp_path));
+		$this->exec((new \Utils\Commands)->set_tmpfs($tmp_path));
 		if($this->output(true) != 'OK'){
 			throw new SSH_error("tmpfs could not be mounted: $tmp_path", self::ERR_PROCESS);
 		}

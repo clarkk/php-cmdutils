@@ -58,7 +58,7 @@ class Net extends Net_error_codes {
 	
 	public function request(string $url, string $post='', array $headers=[], array $options=[], bool $multipart=false): array{
 		if(!strpos($url, '://')){
-			throw new Net_error("Protocol missing in URL '$url'", self::ERR_NETWORK);
+			throw new Error("Protocol missing in URL '$url'", self::ERR_NETWORK);
 		}
 		
 		if($multipart){
@@ -87,7 +87,7 @@ class Net extends Net_error_codes {
 		$response = curl_exec($this->curl);
 		
 		if($response === false){
-			throw new Net_error(curl_error($this->curl), self::ERR_NETWORK);
+			throw new Error(curl_error($this->curl), self::ERR_NETWORK);
 		}
 		
 		$code = curl_getinfo($this->curl, CURLINFO_HTTP_CODE);
@@ -133,7 +133,7 @@ class Net extends Net_error_codes {
 			$response = json_decode($response, true, 512, JSON_THROW_ON_ERROR);
 		}
 		catch(\Exception $e){
-			throw new Net_error('JSON decode error', self::ERR_RESPONSE);
+			throw new Error('JSON decode error', self::ERR_RESPONSE);
 		}
 	}
 	
@@ -145,4 +145,4 @@ class Net extends Net_error_codes {
 	}
 }
 
-class Net_error extends \Error {}
+class Error extends \Error {}

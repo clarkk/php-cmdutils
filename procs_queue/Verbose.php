@@ -3,7 +3,7 @@
 namespace Utils\Procs_queue;
 
 abstract class Verbose {
-	protected $verbose 	= false;
+	protected $verbose 	= 0;
 	
 	const COLOR_GRAY 	= '1;30';
 	const COLOR_GREEN 	= '0;32';
@@ -14,19 +14,18 @@ abstract class Verbose {
 	const VERBOSE_PLAIN = 1;
 	const VERBOSE_COLOR = 2;
 	
-	private $log;
-	
 	const CRLF = "\r\n";
 	
-	public function __construct(int $verbose=0){
-		$this->verbose 	= $verbose;
-		
-		$this->log = dirname(__FILE__).'/log/output.log';
+	private $log;
+	
+	public function __construct(){
+		$this->log = \Log\Log::get_log_file($this->task_name);
 		file_put_contents($this->log, '');
 	}
 	
 	public function error(string $error){
-		fwrite(STDERR, date('Y-m-d H:i:s', time())." $error".self::CRLF);
+		$local_time = time() + (new \DateTimeZone('Europe/Copenhagen'))->getOffset(new \DateTime('now'));
+		fwrite(STDERR, date('Y-m-d H:i:s', $local_time)." $error".self::CRLF);
 	}
 	
 	protected function verbose(string $output, string $color=''){

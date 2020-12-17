@@ -2,17 +2,17 @@
 
 namespace Utils\Procs_queue;
 
-if(PHP_SAPI != 'cli') exit;
+if(!PHP_CLI){
+	exit;
+}
 
 use \Utils\Cmd\Cmd;
 use \Utils\SSH\SSH;
 use \Utils\SSH\SSH_error;
 use \Utils\Procs_queue\Worker_init;
 
-require_once 'trait_Commands.php';
-
 abstract class Procs_queue extends Verbose {
-	use Commands;
+	protected $task_name;
 	
 	private $timeout 		= 999;
 	private $ssh_timeout 	= 60;
@@ -24,8 +24,6 @@ abstract class Procs_queue extends Verbose {
 	
 	private $time_start;
 	
-	private $task_name;
-	
 	private $localhost_tmp_path;
 	private $localhost_proc_path;
 	
@@ -35,10 +33,11 @@ abstract class Procs_queue extends Verbose {
 	const LOCALHOST 		= 'localhost';
 	
 	public function __construct(string $task_name, int $verbose=0){
-		parent::__construct($verbose);
-		
+		$this->verbose 		= $verbose;
 		$this->nproc 		= (int)shell_exec('nproc');
 		$this->task_name 	= $task_name;
+		
+		parent::__construct();
 		
 		if($this->verbose){
 			$this->verbose('Procs queue \''.$this->task_name.'\' (pid: '.getmypid().') running as \''.trim(shell_exec('whoami')).'\'', self::COLOR_GREEN);
@@ -97,14 +96,18 @@ abstract class Procs_queue extends Verbose {
 			}
 			
 			$this->redis_abort_list = $abort_list;
+			
+			if($this->verbose){
+				$this->verbose('Redis abort list \''.$abort_list.'\' connected', self::COLOR_GREEN);
+			}
 		}
 		catch(\RedisException $e){
-			throw new Procs_queue_error('Redis: '.$e->getMessage(), 0, $e);
+			throw new Error('Redis: '.$e->getMessage(), 0, $e);
 		}
 	}
 	
-	public function exec(string $localhost_base_path, string $localhost_proc_path, string $localhost_tmp_path){
-		$this->check_localhost($localhost_base_path, $localhost_proc_path, $localhost_tmp_path);
+	public function exec(string $localhost_proc_path, string $localhost_tmp_path){
+		$this->check_localhost($localhost_proc_path, $localhost_tmp_path);
 		
 		$this->start_time();
 		
@@ -166,8 +169,10 @@ abstract class Procs_queue extends Verbose {
 			$tmp_path = $this->task_tmp_path($this->localhost_tmp_path, $data);
 			$exitcode = $tmp_path.'exitcode';
 			
+			$cmd = (new \Utils\Commands)->group_subprocs($this->task_php_command($this->localhost_proc_path, $tmp_path, $data, $file), $exitcode);
+			
 			$proc = new Cmd(true);
-			$proc->exec('mkdir -p '.$tmp_path.'; cp '.$file.' '.$tmp_path.'; '.$this->cmd_group_subprocs($this->task_php_command($this->localhost_proc_path, $tmp_path, $data, $file), $exitcode));
+			$proc->exec('mkdir -p '.$tmp_path.'; cp '.$file.' '.$tmp_path.'; '.$cmd);
 			
 			$this->procs[] = [
 				'cmd'		=> $proc,
@@ -195,8 +200,10 @@ abstract class Procs_queue extends Verbose {
 			$this->workers[$proc_slot]['ssh']->exec('mkdir -p '.$tmp_path);
 			$this->workers[$proc_slot]['ssh']->upload($file, $tmp_path.basename($file));
 			
+			$cmd = (new \Utils\Commands)->group_subprocs($this->task_php_command($this->workers[$proc_slot]['paths']['proc'], $tmp_path, $data, $file), $exitcode, true);
+			
 			$ssh = $this->ssh_pool($proc_slot);
-			$ssh->exec($this->cmd_group_subprocs($this->task_php_command($this->workers[$proc_slot]['paths']['proc'], $tmp_path, $data, $file), $exitcode, true));
+			$ssh->exec($cmd);
 			
 			$pid = $ssh->output(true, true);
 			
@@ -401,42 +408,51 @@ abstract class Procs_queue extends Verbose {
 		return false;
 	}
 	
-	private function check_localhost(string $base_path, string $proc_path, string $tmp_path){
-		if(!is_file($base_path.$proc_path)){
+	private function check_localhost(string $proc_path, string $tmp_path){
+		if(!is_file($proc_path)){
 			$err = "proc path not found on localhost: $proc_path";
 			if($this->verbose){
 				$this->verbose($err, self::COLOR_RED);
 			}
 			
-			throw new Procs_queue_error($err);
+			throw new Error($err);
 		}
 		
-		if(!is_dir($base_path.$tmp_path)){
+		if(!is_dir($tmp_path)){
 			$err = "tmp path not found on localhost: $tmp_path";
 			if($this->verbose){
 				$this->verbose($err, self::COLOR_RED);
 			}
 			
-			throw new Procs_queue_error($err);
+			throw new Error($err);
 		}
 		
-		$cmd = new Cmd;
-		$cmd->exec($this->cmd_set_tmpfs($base_path.$tmp_path));
-		if($cmd->output(true) != 'OK'){
-			$err = "tmpfs could not be mounted on localhost: $tmp_path";
+		if(!is_writeable($tmp_path)){
+			$err = "tmp path not writeable on localhost: $tmp_path";
 			if($this->verbose){
 				$this->verbose($err, self::COLOR_RED);
 			}
 			
-			throw new Procs_queue_error($err);
+			throw new Error($err);
 		}
+		
+		/*$cmd = new Cmd;
+		$cmd->exec((new \Utils\Commands)->set_tmpfs($task_tmp_path));
+		if($cmd->output(true) != 'OK'){
+			$err = "tmpfs could not be mounted on localhost: $task_tmp_path";
+			if($this->verbose){
+				$this->verbose($err, self::COLOR_RED);
+			}
+			
+			throw new Error($err);
+		}*/
 		
 		if($this->verbose){
-			$this->verbose("Localhost initiated\nnprocs: $this->nproc\nproc: $proc_path\ntmpfs: $tmp_path", self::COLOR_GREEN);
+			$this->verbose("Localhost initiated\nnprocs: $this->nproc\nproc: $proc_path\ntmp: $tmp_path", self::COLOR_GREEN);
 		}
 		
-		$this->localhost_tmp_path 	= realpath($base_path.$tmp_path);
-		$this->localhost_proc_path 	= realpath($base_path.$proc_path);
+		$this->localhost_tmp_path 	= realpath($tmp_path);
+		$this->localhost_proc_path 	= realpath($proc_path);
 	}
 	
 	private function task_tmp_path(string $base_path, array $task): string{
@@ -486,4 +502,4 @@ abstract class Procs_queue extends Verbose {
 	}
 }
 
-class Procs_queue_error extends \Error {}
+class Error extends \Error {}

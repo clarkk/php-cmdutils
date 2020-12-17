@@ -11,6 +11,6 @@ try{
 	$Test->proc_stream('php procs/proc.php', 'An error occurred!', "First message\nSecond message\nThird message\nFinal message");
 	$Test->proc_stream('php procs/proc_exit.php', 'An fatal error occurred!', 'First message', 1);*/
 }
-catch(\Utils\Net\Net_error $e){
+catch(\Utils\Net\Error $e){
 	echo "\n\tTEST FAILED ON URL: ".$e->getMessage()."\n\n";
 }

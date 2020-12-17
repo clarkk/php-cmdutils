@@ -2,16 +2,22 @@
 
 namespace Utils\Procs_queue;
 
-if(PHP_SAPI != 'cli') exit;
+if(!PHP_CLI){
+	exit;
+}
 
 abstract class Proc_child {
 	protected $allowed_argv 	= [];
 	protected $args 			= [];
 	
-	public function __construct(array $argv){
-		ini_set('max_execution_time', 60*60*3);
+	public function __construct(){
+		global $argv;
 		
 		$this->parse_argv($argv);
+		
+		ini_set('max_execution_time', 60*60*3);
+		
+		
 		
 		//print_r($this->args);
 		

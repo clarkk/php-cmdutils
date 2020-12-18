@@ -171,8 +171,19 @@ abstract class Procs_queue extends Verbose {
 			
 			$cmd = (new \Utils\Commands)->group_subprocs($this->task_php_command($this->localhost_proc_path, $tmp_path, $data, $file), $exitcode);
 			
+			
+			
+			
+			$proc = new Cmd;
+			$err = $proc->exec('mkdir '.$tmp_path.'; cp '.$file.' '.$tmp_path.'; '.$cmd);
+			echo $proc->output();
+			exit;
+			
+			
+			
+			
 			$proc = new Cmd(true);
-			$proc->exec('mkdir -p '.$tmp_path.'; cp '.$file.' '.$tmp_path.'; '.$cmd);
+			$proc->exec('mkdir '.$tmp_path.'; cp '.$file.' '.$tmp_path.'; '.$cmd);
 			
 			$this->procs[] = [
 				'cmd'		=> $proc,
@@ -197,7 +208,7 @@ abstract class Procs_queue extends Verbose {
 			$tmp_path = $this->task_tmp_path($this->workers[$proc_slot]['paths']['tmp'], $data);
 			$exitcode = $tmp_path.'exitcode';
 			
-			$this->workers[$proc_slot]['ssh']->exec('mkdir -p '.$tmp_path);
+			$this->workers[$proc_slot]['ssh']->exec('mkdir '.$tmp_path);
 			$this->workers[$proc_slot]['ssh']->upload($file, $tmp_path.basename($file));
 			
 			$cmd = (new \Utils\Commands)->group_subprocs($this->task_php_command($this->workers[$proc_slot]['paths']['proc'], $tmp_path, $data, $file), $exitcode, true);
@@ -436,17 +447,6 @@ abstract class Procs_queue extends Verbose {
 			throw new Error($err);
 		}
 		
-		/*$cmd = new Cmd;
-		$cmd->exec((new \Utils\Commands)->set_tmpfs($task_tmp_path));
-		if($cmd->output(true) != 'OK'){
-			$err = "tmpfs could not be mounted on localhost: $task_tmp_path";
-			if($this->verbose){
-				$this->verbose($err, self::COLOR_RED);
-			}
-			
-			throw new Error($err);
-		}*/
-		
 		if($this->verbose){
 			$this->verbose("Localhost initiated\nnprocs: $this->nproc\nproc: $proc_path\ntmp: $tmp_path", self::COLOR_GREEN);
 		}
@@ -462,7 +462,13 @@ abstract class Procs_queue extends Verbose {
 	}
 	
 	private function task_php_command(string $php_path, string $tmp_path, array $data, string $file): string{
-		return 'php '.$php_path.' -v='.$this->verbose.' -tmp='.$tmp_path.' -data='.base64_encode(serialize($data)).' -file='.basename($file);
+		$process_data = [
+			'data'	=> $data,
+			'tmp'	=> $tmp_path,
+			'file'	=> basename($file)
+		];
+		
+		return 'php '.$php_path.' '.$this->task_name.' '.($this->verbose ? '-v='.$this->verbose : '').' -process='.base64_encode(serialize($process_data));
 	}
 	
 	private function is_procs_running(): bool{

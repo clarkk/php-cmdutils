@@ -6,14 +6,13 @@ class Cronjob extends Argv {
 	private $cronjob_id;
 	private $cronjob_file;
 	
-	protected $allow_task_name 	= true;
+	protected $require_task_name = true;
 	protected $allowed_argv = [
-		'v'
+		'v',
+		'process'
 	];
 	
-	public function __construct(string $base_path, bool $use_db=true){
-		parent::__construct();
-		
+	public function init(string $base_path, bool $use_db=true){
 		if(!$this->task_name){
 			throw new Error('Cronjob task not given');
 		}

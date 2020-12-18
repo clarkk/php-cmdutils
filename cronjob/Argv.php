@@ -4,22 +4,33 @@ namespace Utils\Cronjob;
 
 abstract class Argv {
 	protected $task_name;
-	protected $args_switch 		= [];
-	protected $args_var 		= [];
+	protected $args_var 			= [];
 	
-	protected $allow_task_name 	= false;
-	protected $allowed_argv 	= [];
+	protected $require_task_name 	= false;
+	protected $allowed_argv 		= [];
 	
-	protected $verbose 			= false;
+	protected $verbose 				= false;
 	
 	public function __construct(){
 		global $argv;
 		
 		$this->parse_argv($argv);
 		
-		if(in_array('v', $this->args_switch)){
-			$this->verbose = true;
+		if(isset($this->args_var['v'])){
+			$this->verbose = (int)($this->args_var['v'] ?: 1);
 		}
+	}
+	
+	public function get_task_name(): string{
+		return $this->task_name;
+	}
+	
+	public function get_arg_var(string $arg, bool $decode=false){
+		if(isset($this->args_var[$arg])){
+			return $decode ? unserialize(base64_decode($this->args_var[$arg])) : $this->args_var[$arg];
+		}
+		
+		return null;
 	}
 	
 	private function parse_argv(array $argv){
@@ -38,7 +49,7 @@ abstract class Argv {
 				else{
 					$key = $arg;
 					
-					$this->args_switch[] = $arg;
+					$this->args_var[$key] = '';
 				}
 				
 				if(!in_array($key, $this->allowed_argv)){
@@ -46,13 +57,17 @@ abstract class Argv {
 				}
 			}
 			else{
-				if($this->allow_task_name){
+				if($this->require_task_name){
 					$this->task_name = $arg;
 				}
 				else{
 					throw new Error('Task name is not allowed');
 				}
 			}
+		}
+		
+		if($this->require_task_name && !$this->task_name){
+			throw new Error('Task name is not given');
 		}
 	}
 }

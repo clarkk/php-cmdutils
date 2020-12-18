@@ -44,19 +44,19 @@ abstract class Procs_queue extends Verbose {
 		}
 	}
 	
-	public function add_worker(string $user, string $host, string $base_path, string $proc_path, string $tmp_path){
+	public function add_worker(string $user, string $host, string $proc_path, string $tmp_path){
 		try{
 			if($this->verbose){
 				$this->verbose("Add worker '$host'", self::COLOR_GRAY);
 			}
 			
 			$ssh = new Worker_init($user, $host);
-			$ssh->check_proc_path($base_path.$proc_path);
-			$ssh->check_tmp_path($base_path.$tmp_path);
+			$ssh->check_proc_path($proc_path);
+			$ssh->check_tmp_path($tmp_path);
 			$nproc = $ssh->get_nproc();
 			
 			if($this->verbose){
-				$this->verbose("Worker '$host' initiated\nnprocs: $nproc\nproc: $proc_path\ntmpfs: $tmp_path", self::COLOR_GREEN);
+				$this->verbose("Worker '$host' initiated\nnprocs: $nproc\nproc: $proc_path\ntmp: $tmp_path", self::COLOR_GREEN);
 			}
 			
 			$this->workers[$host] = [
@@ -64,8 +64,8 @@ abstract class Procs_queue extends Verbose {
 				'user'		=> $user,
 				'ssh'		=> $ssh,
 				'paths'		=> [
-					'proc'	=> $base_path.$proc_path,
-					'tmp'	=> $base_path.$tmp_path
+					'proc'	=> $proc_path,
+					'tmp'	=> $tmp_path
 				],
 				'procs'		=> [],
 				'ssh_pool'	=> []
@@ -78,7 +78,7 @@ abstract class Procs_queue extends Verbose {
 				$this->verbose($error, self::COLOR_RED);
 			}
 			
-			$this->error($error);
+			\Log\Err::fatal($e);
 			
 			$ssh->disconnect();
 		}
@@ -136,6 +136,9 @@ abstract class Procs_queue extends Verbose {
 			}
 			
 			$this->ssh_connection_status();
+			
+			//	test
+			sleep(1);
 		}
 	}
 	
@@ -170,17 +173,6 @@ abstract class Procs_queue extends Verbose {
 			$exitcode = $tmp_path.'exitcode';
 			
 			$cmd = (new \Utils\Commands)->group_subprocs($this->task_php_command($this->localhost_proc_path, $tmp_path, $data, $file), $exitcode);
-			
-			
-			
-			
-			$proc = new Cmd;
-			$err = $proc->exec('mkdir '.$tmp_path.'; cp '.$file.' '.$tmp_path.'; '.$cmd);
-			echo $proc->output();
-			exit;
-			
-			
-			
 			
 			$proc = new Cmd(true);
 			$proc->exec('mkdir '.$tmp_path.'; cp '.$file.' '.$tmp_path.'; '.$cmd);

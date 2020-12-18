@@ -23,11 +23,6 @@ abstract class Verbose {
 		file_put_contents($this->log, '');
 	}
 	
-	public function error(string $error){
-		$local_time = time() + (new \DateTimeZone('Europe/Copenhagen'))->getOffset(new \DateTime('now'));
-		fwrite(STDERR, date('Y-m-d H:i:s', $local_time)." $error".self::CRLF);
-	}
-	
 	protected function verbose(string $output, string $color=''){
 		if($color){
 			$output = $this->output($output);

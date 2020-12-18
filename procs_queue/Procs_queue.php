@@ -137,12 +137,12 @@ abstract class Procs_queue extends Verbose {
 			
 			$this->ssh_connection_status();
 			
-			//	test
 			sleep(1);
 		}
 	}
 	
 	abstract protected function task_fetch(): array;
+	abstract protected function task_start(int $id, string $pid);
 	abstract protected function task_success(int $id, array $data);
 	abstract protected function task_failed(int $id, array $data);
 	
@@ -167,7 +167,7 @@ abstract class Procs_queue extends Verbose {
 		}
 	}
 	
-	private function start_proc(string $proc_slot, array $data, string $file): string{
+	private function start_proc(string $proc_slot, array $data, string $file){
 		if($proc_slot == self::LOCALHOST){
 			$tmp_path = $this->task_tmp_path($this->localhost_tmp_path, $data);
 			$exitcode = $tmp_path.'exitcode';
@@ -229,7 +229,7 @@ abstract class Procs_queue extends Verbose {
 			}
 		}
 		
-		return $uid;
+		$this->task_start($data['id'], $uid);
 	}
 	
 	private function read_proc_streams(){

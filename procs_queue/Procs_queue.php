@@ -145,8 +145,8 @@ abstract class Procs_queue extends Verbose {
 	
 	abstract protected function task_fetch(): array;
 	abstract protected function task_start(int $id, string $pid);
-	abstract protected function task_success(int $id, array $data);
-	abstract protected function task_failed(int $id, array $data);
+	abstract protected function task_success(int $id, string $json);
+	abstract protected function task_failed(int $id);
 	
 	private function kill_aborted_tasks(){
 		if($this->redis->lLen($this->redis_abort_list)){
@@ -182,7 +182,8 @@ abstract class Procs_queue extends Verbose {
 			$this->procs[] = [
 				'cmd'		=> $proc,
 				'tmp_path'	=> $tmp_path,
-				'exitcode'	=> $exitcode
+				'exitcode'	=> $exitcode,
+				'data_id'	=> $data['id']
 			];
 			
 			$k 		= array_key_last($this->procs);
@@ -195,7 +196,7 @@ abstract class Procs_queue extends Verbose {
 			$this->procs[$k]['uid'] = $uid;
 			
 			if($this->verbose){
-				$this->verbose("Proc $id (pid: $pid) started", self::COLOR_GREEN);
+				$this->verbose("Proc $id (pid: $pid, data_id: ".$data['id'].") started", self::COLOR_GREEN);
 			}
 		}
 		else{
@@ -215,7 +216,8 @@ abstract class Procs_queue extends Verbose {
 			$this->workers[$proc_slot]['procs'][] = [
 				'ssh'		=> $ssh,
 				'tmp_path'	=> $tmp_path,
-				'exitcode'	=> $exitcode
+				'exitcode'	=> $exitcode,
+				'data_id'	=> $data['id']
 			];
 			
 			$k 		= array_key_last($this->workers[$proc_slot]['procs']);
@@ -227,7 +229,7 @@ abstract class Procs_queue extends Verbose {
 			$this->workers[$proc_slot]['procs'][$k]['uid']	= $uid;
 			
 			if($this->verbose){
-				$this->verbose("SSH $id (pid: $pid) started", self::COLOR_GREEN);
+				$this->verbose("SSH $id (pid: $pid, data_id: ".$data['id'].") started", self::COLOR_GREEN);
 			}
 		}
 		
@@ -249,10 +251,19 @@ abstract class Procs_queue extends Verbose {
 					$this->verbose_proc_complete('Proc '.$proc['id'], $exitcode);
 				}
 				
-				$json = file_get_contents($proc['tmp_path'].'/'.self::OUTPUT_FILE);
-				
-				if($this->verbose){
-					$this->verbose($json, self::COLOR_PURPLE);
+				//	Failed
+				if($exitcode){
+					$this->task_failed($proc['data_id']);
+				}
+				//	Success
+				else{
+					$json = file_get_contents($proc['tmp_path'].'/'.self::OUTPUT_FILE);
+					
+					$this->task_success($proc['data_id'], $json);
+					
+					if($this->verbose){
+						$this->verbose($json, self::COLOR_PURPLE);
+					}
 				}
 				
 				shell_exec('rm -r '.$proc['tmp_path']);
@@ -275,11 +286,20 @@ abstract class Procs_queue extends Verbose {
 						$this->verbose_proc_complete('SSH '.$proc['id'], $exitcode);
 					}
 					
-					$worker['ssh']->exec('cat '.$proc['tmp_path'].'/'.self::OUTPUT_FILE);
-					$json = $worker['ssh']->output(true);
-					
-					if($this->verbose){
-						$this->verbose($json, self::COLOR_PURPLE);
+					//	Failed
+					if($exitcode){
+						$this->task_failed($proc['data_id']);
+					}
+					//	Success
+					else{
+						$worker['ssh']->exec('cat '.$proc['tmp_path'].'/'.self::OUTPUT_FILE);
+						$json = $worker['ssh']->output(true);
+						
+						$this->task_success($proc['data_id'], $json);
+						
+						if($this->verbose){
+							$this->verbose($json, self::COLOR_PURPLE);
+						}
 					}
 					
 					$worker['ssh']->exec('rm -r '.$proc['tmp_path']);

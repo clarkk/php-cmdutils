@@ -32,6 +32,8 @@ abstract class Procs_queue extends Verbose {
 	
 	const LOCALHOST 		= 'localhost';
 	
+	const OUTPUT_FILE 		= 'output.json';
+	
 	public function __construct(string $task_name, int $verbose=0){
 		$this->verbose 		= $verbose;
 		$this->nproc 		= (int)shell_exec('nproc');
@@ -247,6 +249,12 @@ abstract class Procs_queue extends Verbose {
 					$this->verbose_proc_complete('Proc '.$proc['id'], $exitcode);
 				}
 				
+				$json = file_get_contents($proc['tmp_path'].'/'.self::OUTPUT_FILE);
+				
+				if($this->verbose){
+					$this->verbose($json, self::COLOR_PURPLE);
+				}
+				
 				shell_exec('rm -r '.$proc['tmp_path']);
 				$proc['cmd']->close();
 				unset($this->procs[$p]);
@@ -265,6 +273,13 @@ abstract class Procs_queue extends Verbose {
 					
 					if($this->verbose){
 						$this->verbose_proc_complete('SSH '.$proc['id'], $exitcode);
+					}
+					
+					$worker['ssh']->exec('cat '.$proc['tmp_path'].'/'.self::OUTPUT_FILE);
+					$json = $worker['ssh']->output(true);
+					
+					if($this->verbose){
+						$this->verbose($json, self::COLOR_PURPLE);
 					}
 					
 					$worker['ssh']->exec('rm -r '.$proc['tmp_path']);

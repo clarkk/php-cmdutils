@@ -133,8 +133,6 @@ abstract class Procs_queue extends Verbose {
 			
 			if(!$this->is_procs_running()){
 				$this->verbose('... No processing tasks. Sleep 1 sec ...', self::COLOR_GRAY);
-				
-				sleep(1);
 			}
 			
 			$this->ssh_connection_status();

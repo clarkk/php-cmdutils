@@ -19,8 +19,7 @@ abstract class Verbose {
 	private $log;
 	
 	public function __construct(){
-		$this->log = \Log\Log::get_log_file($this->task_name);
-		file_put_contents($this->log, '');
+		$this->log = \Log\Log::get_log_file($this->task_name, false, true);
 	}
 	
 	protected function verbose(string $output, string $color=''){

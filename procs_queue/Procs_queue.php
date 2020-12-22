@@ -142,9 +142,9 @@ abstract class Procs_queue extends Verbose {
 	}
 	
 	abstract protected function task_fetch(): array;
-	abstract protected function task_start(int $id, string $pid);
-	abstract protected function task_success(int $id, string $json);
-	abstract protected function task_failed(int $id);
+	abstract protected function task_start(array $data, string $pid);
+	abstract protected function task_success(array $data, string $json);
+	abstract protected function task_failed(array $data);
 	
 	private function kill_aborted_tasks(){
 		if($this->redis->lLen($this->redis_abort_list)){
@@ -181,7 +181,7 @@ abstract class Procs_queue extends Verbose {
 				'cmd'		=> $proc,
 				'tmp_path'	=> $tmp_path,
 				'exitcode'	=> $exitcode,
-				'data_id'	=> $data['id']
+				'data'		=> $data
 			];
 			
 			$k 		= array_key_last($this->procs);
@@ -215,7 +215,7 @@ abstract class Procs_queue extends Verbose {
 				'ssh'		=> $ssh,
 				'tmp_path'	=> $tmp_path,
 				'exitcode'	=> $exitcode,
-				'data_id'	=> $data['id']
+				'data'		=> $data
 			];
 			
 			$k 		= array_key_last($this->workers[$proc_slot]['procs']);
@@ -231,7 +231,7 @@ abstract class Procs_queue extends Verbose {
 			}
 		}
 		
-		$this->task_start($data['id'], $uid);
+		$this->task_start($data, $uid);
 	}
 	
 	private function read_proc_streams(){
@@ -251,13 +251,13 @@ abstract class Procs_queue extends Verbose {
 				
 				//	Failed
 				if($exitcode){
-					$this->task_failed($proc['data_id']);
+					$this->task_failed($proc['data']);
 				}
 				//	Success
 				else{
 					$json = file_get_contents($proc['tmp_path'].'/'.self::OUTPUT_FILE);
 					
-					$this->task_success($proc['data_id'], $json);
+					$this->task_success($proc['data'], $json);
 					
 					if($this->verbose){
 						$this->verbose($json, self::COLOR_PURPLE);
@@ -286,14 +286,14 @@ abstract class Procs_queue extends Verbose {
 					
 					//	Failed
 					if($exitcode){
-						$this->task_failed($proc['data_id']);
+						$this->task_failed($proc['data']);
 					}
 					//	Success
 					else{
 						$worker['ssh']->exec('cat '.$proc['tmp_path'].'/'.self::OUTPUT_FILE);
 						$json = $worker['ssh']->output(true);
 						
-						$this->task_success($proc['data_id'], $json);
+						$this->task_success($proc['data'], $json);
 						
 						if($this->verbose){
 							$this->verbose($json, self::COLOR_PURPLE);

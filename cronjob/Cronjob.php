@@ -92,8 +92,11 @@ class Cronjob extends Argv {
 	}*/
 	
 	private function exec(bool $use_db){
+		$ppid 	= posix_getppid();
+		$pid 	= posix_getpid();
+		
 		if($this->verbose){
-			echo "Cronjob '$this->task_name' starts executing (pid: ".getmypid().")...\n";
+			echo "Cronjob '$this->task_name' starts executing (pid: $pid)...\n";
 		}
 		
 		$time = time();
@@ -102,7 +105,9 @@ class Cronjob extends Argv {
 			(new \dbdata\Put)->exec('cronjob', $this->cronjob_id, [
 				'is_running_time'		=> $time,
 				'is_failure_notified'	=> 0,
-				'time'					=> $time
+				'time'					=> $time,
+				'ppid'					=> $ppid,
+				'pid'					=> $pid
 			]);
 		}
 		
@@ -128,7 +133,9 @@ class Cronjob extends Argv {
 		if($use_db){
 			(new \dbdata\Put)->exec('cronjob', $this->cronjob_id, [
 				'is_running_time'	=> 0,
-				'time_exec'			=> $time_exec
+				'time_exec'			=> $time_exec,
+				'ppid'				=> null,
+				'pid'				=> null
 			]);
 			
 			(new \dbdata\Put)->exec('log_cronjob', 0, [

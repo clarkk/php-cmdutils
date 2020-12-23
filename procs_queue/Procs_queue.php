@@ -42,7 +42,7 @@ abstract class Procs_queue extends Verbose {
 		parent::__construct();
 		
 		if($this->verbose){
-			$this->verbose('Procs queue \''.$this->task_name.'\' (pid: '.getmypid().') running as \''.trim(shell_exec('whoami')).'\'', self::COLOR_GREEN);
+			$this->verbose('Procs queue \''.$this->task_name.'\' (pid: '.posix_getpid().') running as \''.trim(shell_exec('whoami')).'\'', self::COLOR_GREEN);
 		}
 	}
 	
@@ -275,7 +275,7 @@ abstract class Procs_queue extends Verbose {
 				$this->read_proc_stream($proc['ssh'], $proc['id'], true);
 				
 				//	Check if proc has stopped
-				$worker['ssh']->exec('ps --no-headers -p '.$proc['pid']);
+				$worker['ssh']->exec('ps --noheader -p '.$proc['pid']);
 				if(!$worker['ssh']->output(true)){
 					$worker['ssh']->exec('cat '.$proc['exitcode'].' 2>/dev/null');
 					$exitcode = $this->parse_exitcode($worker['ssh']->output(true));

@@ -9,18 +9,19 @@ class Cronjob_status extends \Utils\cmd\Cmd {
 		$this->exec("ps --noheader o pid,ppid,cmd -C php | grep 'cronjob.php $task_name'");
 		
 		foreach(array_filter(explode("\n", $this->output(true))) as $proc){
-			$pid = (int)$proc;
-			
 			$cmd = [
+				'pid'	=> (int)$proc,
+				'ppid'	=> (int)substr($proc, strpos($proc, ' ')),
 				'cmd'	=> substr($proc, strpos($proc, 'cronjob.php')),
-				'ppid'	=> (int)substr($proc, strpos($proc, ' '))
+				'cpu' 	=> 0,
+				'mem' 	=> 0
 			];
 			
 			if(strpos($proc, ' -process=')){
-				$procs[$pid] = $cmd;
+				$procs[] = $cmd;
 			}
 			else{
-				$procs = [$pid => $cmd] + $procs;
+				array_unshift($procs, $cmd);
 			}
 			
 		}

@@ -104,6 +104,8 @@ abstract class Procs_queue extends Verbose {
 			}
 		}
 		catch(\RedisException $e){
+			\Log\Err::fatal($e);
+			
 			throw new Error('Redis: '.$e->getMessage(), 0, $e);
 		}
 	}
@@ -153,12 +155,12 @@ abstract class Procs_queue extends Verbose {
 					$proc = explode(':', $entry);
 					
 					if($proc[0] == self::LOCALHOST){
-						if($this->procs[$proc[1]]['pid'] == $proc[2]){
+						if(isset($this->procs[$proc[1]]) && $this->procs[$proc[1]]['pid'] == $proc[2]){
 							shell_exec('kill '.$proc[2]);
 						}
 					}
 					else{
-						if($this->workers[$proc[0]]['procs'][$proc[1]]['pid'] == $proc[2]){
+						if(isset($this->workers[$proc[0]]['procs'][$proc[1]]) && $this->workers[$proc[0]]['procs'][$proc[1]]['pid'] == $proc[2]){
 							$this->workers[$proc[0]]['ssh']->exec('kill '.$proc[2]);
 						}
 					}

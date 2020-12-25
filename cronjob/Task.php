@@ -3,8 +3,6 @@
 namespace Utils\Cronjob;
 
 abstract class Task {
-	use Cronjob_error_report;
-	
 	protected $task_name;
 	protected $verbose = false;
 	

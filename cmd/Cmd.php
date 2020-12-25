@@ -68,34 +68,6 @@ class Cmd {
 	public function get_pipe_stream(int $pipe): string{
 		return stream_get_contents($this->pipes[$pipe]);
 		
-		/*$output = '';
-		$handle = $this->pipes[$pipe];
-		
-		$arr = [$handle];
-		$lulz1 = [];
-		$lulz2 = [];
-		
-		while(true){
-			if(stream_select($arr, $lulz1, $lulz2, 0, 100000) < 1){
-				break;
-			}
-			
-			$time_start = microtime(true);
-			$new 		= stream_get_contents($handle, 1);
-			$time_used 	= microtime(true) - $time_start;
-			
-			if(!is_string($new) || !strlen($new)){
-				break;
-			}
-			
-			$output .= $new;
-			
-			if($time_used > 0.1){
-				break;
-			}
-		}
-		
-		return $output;*/
 	}
 	
 	public function exec(string $command, bool $trim=false){

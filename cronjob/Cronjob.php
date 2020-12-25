@@ -17,7 +17,7 @@ class Cronjob extends Argv {
 			throw new Error('Cronjob task not given');
 		}
 		
-		$this->cronjob_file = realpath($base_path.'/'.$this->task_name.'.php');
+		$this->cronjob_file = $base_path.'/'.$this->task_name.'.php';
 		
 		if(!is_file($this->cronjob_file)){
 			throw new Error('Cronjob file invalid: '.$this->cronjob_file);

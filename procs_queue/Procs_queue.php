@@ -129,12 +129,16 @@ abstract class Procs_queue extends Verbose {
 					$this->start_proc($proc_slot, $task['data'], $task['file']);
 				}
 				else{
-					$this->verbose('... No pending tasks ...', self::COLOR_GRAY);
+					if($this->verbose){
+						$this->verbose('... No pending tasks ...', self::COLOR_GRAY);
+					}
 				}
 			}
 			
 			if(!$this->is_procs_running()){
-				$this->verbose('... No processing tasks. Sleep 1 sec ...', self::COLOR_GRAY);
+				if($this->verbose){
+					$this->verbose('... No processing tasks. Sleep 1 sec ...', self::COLOR_GRAY);
+				}
 			}
 			
 			$this->ssh_connection_status();

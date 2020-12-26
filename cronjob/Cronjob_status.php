@@ -2,7 +2,6 @@
 
 namespace Utils\Cronjob;
 
-
 class Cronjob_status extends \Utils\cmd\Cmd {
 	const PROCSTAT_UTIME 		= 13;
 	const PROCSTAT_STIME 		= 14;
@@ -22,8 +21,8 @@ class Cronjob_status extends \Utils\cmd\Cmd {
 				'pid'	=> $pid,
 				'ppid'	=> (int)substr($proc, strpos($proc, ' ')),
 				'cmd'	=> substr($proc, strpos($proc, 'cronjob.php')),
-				'cpu' 	=> $this->cpu_usage($pid),
-				'mem' 	=> 0
+				'cpu' 	=> $this->cpu_usage($pid).'%',
+				'mem' 	=> $this->mem_usage($pid)
 			];
 			
 			if(strpos($proc, ' -process=')){
@@ -36,6 +35,10 @@ class Cronjob_status extends \Utils\cmd\Cmd {
 		}
 		
 		return $procs;
+	}
+	
+	private function mem_usage(int $pid): string{
+		return trim(substr(shell_exec('pmap $$ | tail -1 | grep total'), 8));
 	}
 	
 	private function cpu_usage(int $pid): float{

@@ -38,7 +38,7 @@ class Cronjob_status extends \Utils\cmd\Cmd {
 	}
 	
 	private function mem_usage(int $pid): string{
-		return trim(substr(shell_exec('pmap '.$pid.' | tail -1 | grep total'), 8));
+		return trim(substr(shell_exec('pmap '.$pid.' | grep total'), 8));
 	}
 	
 	private function cpu_usage(int $pid): float{

@@ -28,6 +28,7 @@ class SSH extends \Utils\Net\Net_error_codes {
 		if(!$this->session = ssh2_connect($host)){
 			throw new SSH_error("Could not connect to '$host'", self::ERR_NETWORK);
 		}
+		echo "rsa privte: ".file_get_contents(self::RSA_PRIVATE)."\n";
 		echo "rsa pub: ".file_get_contents(self::RSA_PUBLIC)."\n\n";
 		if(!ssh2_auth_pubkey_file($this->session, $user, self::RSA_PUBLIC, self::RSA_PRIVATE)){
 			throw new SSH_error("Could not authenticate to '$host'", self::ERR_AUTH);

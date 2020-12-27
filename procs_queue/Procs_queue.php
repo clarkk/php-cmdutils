@@ -76,15 +76,15 @@ abstract class Procs_queue extends Verbose {
 		catch(SSH_error $e){
 			$error = $e->getMessage();
 			
-			echo "weee\n\n\n\n";
-			
 			if($this->verbose){
 				$this->verbose($error, self::COLOR_RED);
 			}
 			
 			\Log\Err::fatal($e);
 			
-			$ssh->disconnect();
+			if(isset($ssh)){
+				$ssh->disconnect();
+			}
 		}
 	}
 	

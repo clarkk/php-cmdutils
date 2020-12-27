@@ -84,8 +84,8 @@ abstract class Procs_queue extends Verbose {
 			
 			if(isset($ssh)){
 				$ssh->disconnect();
-				$ssh = null;
-				unset($ssh);
+				//$ssh = null;
+				//unset($ssh);
 			}
 		}
 	}
@@ -131,13 +131,7 @@ abstract class Procs_queue extends Verbose {
 			$proc_slots = $this->get_open_proc_slots();
 			
 			if($proc_slots['num']){
-				//debug
-				echo "fetch tasks\n";
-				
 				if($tasks = $this->task_fetch($proc_slots['num'])){
-					//debug
-					echo "tasks fetched\n";
-					
 					foreach($tasks as $task){
 						if(!$proc_slots['list']){
 							break;
@@ -235,20 +229,11 @@ abstract class Procs_queue extends Verbose {
 			}
 		}
 		else{
-			//debug
-			echo "start SSH proc\n";
-			
 			$tmp_path = $this->task_tmp_path($this->workers[$proc_slot]['paths']['tmp'], $data);
 			$exitcode = $tmp_path.'exitcode';
 			
-			//debug
-			echo "start SSH mkdir\n";
-			
 			$this->workers[$proc_slot]['ssh']->exec('mkdir '.$tmp_path);
-			
-			//debug
-			echo "start SSH upload\n";
-			
+			//	Results in segmentation fault
 			//$this->workers[$proc_slot]['ssh']->upload($file, $tmp_path.basename($file));
 			shell_exec("scp $file root@$proc_slot:".$tmp_path.basename($file));
 			
@@ -322,16 +307,9 @@ abstract class Procs_queue extends Verbose {
 			foreach($worker['procs'] as $p => $proc){
 				$this->read_proc_stream($proc['ssh'], $proc['id'], true);
 				
-				//debug
-				echo "check SSH proc stopped\n";
-				
 				//	Check if proc has stopped
 				$worker['ssh']->exec('ps --noheader -p '.$proc['pid']);
 				if(!$worker['ssh']->output(true)){
-					
-					//debug
-					echo "read SSH exitcode\n";
-					
 					$worker['ssh']->exec('cat '.$proc['exitcode'].' 2>/dev/null');
 					$exitcode = $this->parse_exitcode($worker['ssh']->output(true));
 					
@@ -345,9 +323,6 @@ abstract class Procs_queue extends Verbose {
 					}
 					//	Success
 					else{
-						//debug
-						echo "read SSH JSON output\n";
-						
 						$worker['ssh']->exec('cat '.$proc['tmp_path'].'/'.self::OUTPUT_FILE);
 						$json = $worker['ssh']->output(true);
 						
@@ -414,8 +389,8 @@ abstract class Procs_queue extends Verbose {
 					}
 					
 					$ssh->disconnect();
-					$ssh = null;
-					unset($ssh);
+					//$ssh = null;
+					//unset($ssh);
 					unset($this->workers[$host]['ssh_pool'][$k]);
 				}
 			}
@@ -438,21 +413,11 @@ abstract class Procs_queue extends Verbose {
 			$stderr 	= Cmd::PIPE_STDERR;
 		}
 		
-		//debug
-		if($is_worker){
-			echo "read SSH stdout\n";
-		}
-		
 		if($pipe_output = $interface->get_pipe_stream($stdout)){
 			if($this->verbose){
 				$this->verbose($verbose, self::COLOR_GRAY);
 				$this->verbose($pipe_output);
 			}
-		}
-		
-		//debug
-		if($is_worker){
-			echo "read SSH stderr\n";
 		}
 		
 		if($pipe_error = $interface->get_pipe_stream($stderr)){
@@ -611,13 +576,13 @@ abstract class Procs_queue extends Verbose {
 	public function __destruct(){
 		foreach($this->workers as $host => $worker){
 			$worker['ssh']->disconnect();
-			$worker['ssh'] = null;
-			unset($worker['ssh']);
+			//$worker['ssh'] = null;
+			//unset($worker['ssh']);
 			
 			foreach($worker['ssh_pool'] as $ssh){
 				$ssh->disconnect();
-				$ssh = null;
-				unset($ssh);
+				//$ssh = null;
+				//unset($ssh);
 			}
 		}
 	}

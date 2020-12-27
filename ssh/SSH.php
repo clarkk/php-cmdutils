@@ -80,6 +80,7 @@ class SSH extends \Utils\Net\Net_error_codes {
 		}
 	}
 	
+	//	Issue when using SFTP via SSH2 results in segmentation fault
 	/*public function upload(string $local, string $remote){
 		if(!$this->sftp){
 			$this->sftp = ssh2_sftp($this->session);
@@ -93,15 +94,9 @@ class SSH extends \Utils\Net\Net_error_codes {
 			unset($this->sftp);
 		}
 		
-		//debug
-		echo "SSH disconnect\n";
-		
-		//ssh2_disconnect($this->session);
-		$this->session = null;
-		unset($this->session);
-		
-		//debug
-		echo "SSH disconnected\n";
+		ssh2_disconnect($this->session);
+		//$this->session = null;
+		//unset($this->session);
 	}
 }
 

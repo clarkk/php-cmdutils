@@ -94,9 +94,9 @@ class SSH extends \Utils\Net\Net_error_codes {
 			unset($this->sftp);
 		}
 		
-		ssh2_disconnect($this->session);
-		//$this->session = null;
-		//unset($this->session);
+		//ssh2_disconnect($this->session);
+		$this->session = null;
+		unset($this->session);
 	}
 }
 

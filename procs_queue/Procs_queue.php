@@ -382,18 +382,17 @@ abstract class Procs_queue extends Verbose {
 				$worker['ssh']->exec('cd ./');
 			}
 			
-			foreach($worker['ssh_pool'] as $k => &$ssh){
+			/*foreach($worker['ssh_pool'] as $k => &$ssh){
 				if($ssh->get_idle_time() > $this->ssh_timeout){
 					if($this->verbose){
 						$this->verbose("\t\t\t\t\t\t\t\t\tSSH timeout ($host) ".(count($worker['ssh_pool']) - 1), self::COLOR_BLUE);
 					}
 					
 					$ssh->disconnect();
-					//$ssh = null;
-					//unset($ssh);
+					$ssh = null; unset($ssh); // fix
 					unset($this->workers[$host]['ssh_pool'][$k]);
 				}
-			}
+			}*/
 		}
 	}
 	
@@ -576,13 +575,11 @@ abstract class Procs_queue extends Verbose {
 	public function __destruct(){
 		foreach($this->workers as $host => $worker){
 			$worker['ssh']->disconnect();
-			//$worker['ssh'] = null;
-			//unset($worker['ssh']);
+			$worker['ssh'] = null; unset($worker['ssh']); // fix
 			
 			foreach($worker['ssh_pool'] as $ssh){
 				$ssh->disconnect();
-				//$ssh = null;
-				//unset($ssh);
+				$ssh = null; unset($ssh); // fix
 			}
 		}
 	}

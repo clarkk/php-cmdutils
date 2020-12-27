@@ -8,6 +8,7 @@ class Cronjob_status extends \Utils\cmd\Cmd {
 	const PROCSTAT_CUTIME 		= 15;
 	const PROCSTAT_CSTIME 		= 16;
 	const PROCSTAT_STARTTIME 	= 21;
+	const PROCSTAT_RSS 			= 23;
 	
 	public function scan(string $task_name){
 		$procs = [];
@@ -17,12 +18,14 @@ class Cronjob_status extends \Utils\cmd\Cmd {
 		foreach(array_filter(explode("\n", $this->output(true))) as $proc){
 			$pid = (int)$proc;
 			
+			$pid_stat = $this->pid_stat($pid);
+			
 			$cmd = [
 				'pid'	=> $pid,
 				'ppid'	=> (int)substr($proc, strpos($proc, ' ')),
 				'cmd'	=> substr($proc, strpos($proc, 'cronjob.php')),
-				'cpu' 	=> $this->cpu_usage($pid).'%',
-				'mem' 	=> $this->mem_usage($pid)
+				'cpu' 	=> $pid_stat['cpu'].'%',
+				'mem' 	=> $pid_stat['mem']
 			];
 			
 			if(strpos($proc, ' -process=')){
@@ -37,11 +40,7 @@ class Cronjob_status extends \Utils\cmd\Cmd {
 		return $procs;
 	}
 	
-	private function mem_usage(int $pid): string{
-		return trim(substr(shell_exec('pmap '.$pid.' | grep total'), 8));
-	}
-	
-	private function cpu_usage(int $pid): float{
+	private function pid_stat(int $pid): array{
 		$uptime 	= explode(' ', shell_exec('cat /proc/uptime'))[0];
 		$procstat 	= explode(' ', shell_exec('cat /proc/'.$pid.'/stat'));
 		$hertz 		= (int)shell_exec('getconf CLK_TCK');
@@ -51,6 +50,9 @@ class Cronjob_status extends \Utils\cmd\Cmd {
 		
 		$seconds 	= $uptime - ($starttime / $hertz);
 		
-		return round(($cputime / $hertz / $seconds) * 100, 1);
+		return [
+			'cpu' => round(($cputime / $hertz / $seconds) * 100, 1),
+			'mem' => $procstat[self::PROCSTAT_RSS]
+		];
 	}
 }

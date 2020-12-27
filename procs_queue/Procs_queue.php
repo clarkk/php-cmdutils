@@ -129,7 +129,13 @@ abstract class Procs_queue extends Verbose {
 			$proc_slots = $this->get_open_proc_slots();
 			
 			if($proc_slots['num']){
+				//debug
+				echo "fetch tasks\n";
+				
 				if($tasks = $this->task_fetch($proc_slots['num'])){
+					//debug
+					echo "tasks fetched\n";
+					
 					foreach($tasks as $task){
 						if(!$proc_slots['list']){
 							break;

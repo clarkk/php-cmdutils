@@ -41,8 +41,20 @@ class Cronjob_status extends \Utils\cmd\Cmd {
 	}
 	
 	private function pid_stat(int $pid): array{
-		$hertz 		= (int)shell_exec('getconf CLK_TCK');
-		$pagesize 	= (int)shell_exec('getconf PAGESIZE') / 1024;
+		$apc_tck 	= 'SYS_CLK_TCK';
+		$apc_page 	= 'SYS_PAGESIZE';
+		
+		$cache_timeout = 60*60*24;
+		
+		if(!$hertz = apcu_fetch($apc_tck)){
+			$hertz = (int)shell_exec('getconf CLK_TCK');
+			apcu_store($apc_tck, $hertz, $cache_timeout);
+		}
+		
+		if(!$pagesize = apcu_fetch($apc_page)){
+			$pagesize = (int)shell_exec('getconf PAGESIZE') / 1024;
+			apcu_store($apc_page, $pagesize, $cache_timeout);
+		}
 		
 		$uptime 	= explode(' ', shell_exec('cat /proc/uptime'))[0];
 		$procstat 	= explode(' ', shell_exec('cat /proc/'.$pid.'/stat'));
@@ -54,7 +66,7 @@ class Cronjob_status extends \Utils\cmd\Cmd {
 		
 		return [
 			'cpu' => round(($cputime / $hertz / $seconds) * 100, 1).'%',
-			'mem' => round($procstat[self::PROCSTAT_RSS] * $pagesize).'K'
+			'mem' => round($procstat[self::PROCSTAT_RSS] * $pagesize / 1024, 2).'M'
 		];
 	}
 }

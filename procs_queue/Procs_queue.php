@@ -304,18 +304,14 @@ abstract class Procs_queue extends Verbose {
 				$this->read_proc_stream($proc['ssh'], $proc['id'], true);
 				
 				//debug
-				if($is_worker){
-					echo "check SSH proc stopped\n";
-				}
+				echo "check SSH proc stopped\n";
 				
 				//	Check if proc has stopped
 				$worker['ssh']->exec('ps --noheader -p '.$proc['pid']);
 				if(!$worker['ssh']->output(true)){
 					
 					//debug
-					if($is_worker){
-						echo "read SSH exitcode\n";
-					}
+					echo "read SSH exitcode\n";
 					
 					$worker['ssh']->exec('cat '.$proc['exitcode'].' 2>/dev/null');
 					$exitcode = $this->parse_exitcode($worker['ssh']->output(true));
@@ -331,9 +327,7 @@ abstract class Procs_queue extends Verbose {
 					//	Success
 					else{
 						//debug
-						if($is_worker){
-							echo "read SSH JSON output\n";
-						}
+						echo "read SSH JSON output\n";
 						
 						$worker['ssh']->exec('cat '.$proc['tmp_path'].'/'.self::OUTPUT_FILE);
 						$json = $worker['ssh']->output(true);

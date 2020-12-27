@@ -58,7 +58,7 @@ abstract class Procs_queue extends Verbose {
 			$nproc = $ssh->get_nproc();
 			
 			if($this->verbose){
-				$this->verbose("Worker '$host' initiated\nnprocs: $nproc\nproc: $proc_path\ntmp: $tmp_path", self::COLOR_GREEN);
+				$this->verbose("Worker '$host' initiated\nnprocs: $nproc\nproc: $proc_path\ntmp: $tmp_path", self::COLOR_BLUE);
 			}
 			
 			$this->workers[$host] = [
@@ -256,7 +256,7 @@ abstract class Procs_queue extends Verbose {
 			$this->workers[$proc_slot]['procs'][$k]['uid']	= $uid;
 			
 			if($this->verbose){
-				$this->verbose("SSH $id (pid: $pid, data_id: ".$data['id'].") started", self::COLOR_GREEN);
+				$this->verbose("SSH $id (pid: $pid, data_id: ".$data['id'].") started", self::COLOR_BLUE);
 			}
 		}
 		
@@ -310,7 +310,7 @@ abstract class Procs_queue extends Verbose {
 					$exitcode = $this->parse_exitcode($worker['ssh']->output(true));
 					
 					if($this->verbose){
-						$this->verbose_proc_complete('SSH '.$proc['id'], $exitcode);
+						$this->verbose_proc_complete('SSH '.$proc['id'], $exitcode, true);
 					}
 					
 					//	Failed
@@ -342,7 +342,7 @@ abstract class Procs_queue extends Verbose {
 			$this->workers[$proc_slot]['ssh_pool'][] = $ssh;
 			
 			if($this->verbose){
-				$this->verbose("\t\t\t\t\t\t\t\t\tSSH --> Pool ".count($this->workers[$proc_slot]['ssh_pool']), self::COLOR_GRAY);
+				$this->verbose("\t\t\t\t\t\t\t\t\tSSH --> Pool ".count($this->workers[$proc_slot]['ssh_pool']), self::COLOR_BLUE);
 			}
 			
 			return null;
@@ -350,14 +350,14 @@ abstract class Procs_queue extends Verbose {
 		else{
 			if($this->workers[$proc_slot]['ssh_pool']){
 				if($this->verbose){
-					$this->verbose("\t\t\t\t\t\t\t\t\tSSH <-- Pool ".(count($this->workers[$proc_slot]['ssh_pool']) - 1), self::COLOR_GRAY);
+					$this->verbose("\t\t\t\t\t\t\t\t\tSSH <-- Pool ".(count($this->workers[$proc_slot]['ssh_pool']) - 1), self::COLOR_BLUE);
 				}
 				
 				return array_shift($this->workers[$proc_slot]['ssh_pool']);
 			}
 			
 			if($this->verbose){
-				$this->verbose("\t\t\t\t\t\t\t\t\tSSH initiated", self::COLOR_GRAY);
+				$this->verbose("\t\t\t\t\t\t\t\t\tSSH initiated", self::COLOR_BLUE);
 			}
 			
 			return new SSH($this->workers[$proc_slot]['user'], $proc_slot, true);
@@ -368,7 +368,7 @@ abstract class Procs_queue extends Verbose {
 		foreach($this->workers as $host => &$worker){
 			if($worker['ssh']->get_idle_time() > $this->ssh_timeout){
 				if($this->verbose){
-					$this->verbose("\t\t\t\t\t\t\t\t\tSSH worker status ($host)", self::COLOR_GRAY);
+					$this->verbose("\t\t\t\t\t\t\t\t\tSSH worker status ($host)", self::COLOR_BLUE);
 				}
 				
 				$worker['ssh']->exec('cd ./');
@@ -377,7 +377,7 @@ abstract class Procs_queue extends Verbose {
 			foreach($worker['ssh_pool'] as $k => &$ssh){
 				if($ssh->get_idle_time() > $this->ssh_timeout){
 					if($this->verbose){
-						$this->verbose("\t\t\t\t\t\t\t\t\tSSH timeout ($host) ".(count($worker['ssh_pool']) - 1), self::COLOR_GRAY);
+						$this->verbose("\t\t\t\t\t\t\t\t\tSSH timeout ($host) ".(count($worker['ssh_pool']) - 1), self::COLOR_BLUE);
 					}
 					
 					$ssh->disconnect();
@@ -418,7 +418,7 @@ abstract class Procs_queue extends Verbose {
 		}
 	}
 	
-	private function verbose_proc_complete(string $verbose, int $exitcode){
+	private function verbose_proc_complete(string $verbose, int $exitcode, bool $is_worker=false){
 		if($exitcode){
 			if($exitcode == 255){
 				$color 		= self::COLOR_YELLOW;
@@ -430,7 +430,7 @@ abstract class Procs_queue extends Verbose {
 			}
 		}
 		else{
-			$color 		= self::COLOR_GREEN;
+			$color 		= $is_worker ? self::COLOR_BLUE : self::COLOR_GREEN;
 			$verbose 	.= ' success';
 		}
 		

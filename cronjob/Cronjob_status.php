@@ -52,7 +52,7 @@ class Cronjob_status extends \Utils\cmd\Cmd {
 		
 		return [
 			'cpu' => round(($cputime / $hertz / $seconds) * 100, 1),
-			'mem' => $procstat[self::PROCSTAT_RSS]
+			'mem' => round($procstat[self::PROCSTAT_RSS] / 1024).'K'
 		];
 	}
 }

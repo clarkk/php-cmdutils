@@ -2,7 +2,7 @@
 
 namespace Utils\Cronjob;
 
-class Cronjob_status extends \Utils\cmd\Cmd {
+class Cronjob_status {
 	const PROCSTAT_UTIME 		= 13;
 	const PROCSTAT_STIME 		= 14;
 	const PROCSTAT_CUTIME 		= 15;
@@ -13,17 +13,19 @@ class Cronjob_status extends \Utils\cmd\Cmd {
 	public function scan(string $task_name){
 		$procs = [];
 		
-		$this->exec("ps --noheader o pid,ppid,cmd -C php | grep 'cronjob.php $task_name'");
+		$output = trim(shell_exec('ps --noheader -o pid,ppid,cmd -C php | grep "cronjob.php '.$task_name.'"'));
 		
-		foreach(array_filter(explode("\n", $this->output(true))) as $proc){
-			$pid = (int)$proc;
+		foreach(array_filter(explode("\n", $output)) as $proc){
+			$pid 	= (int)$proc;
+			$ppid 	= (int)substr($proc, strpos($proc, ' '));
 			
 			$pid_stat = $this->pid_stat($pid);
 			
 			$cmd = [
 				'pid'	=> $pid,
-				'ppid'	=> (int)substr($proc, strpos($proc, ' ')),
+				'ppid'	=> $ppid,
 				'cmd'	=> substr($proc, strpos($proc, 'cronjob.php')),
+				'pcmd'	=> trim(shell_exec('ps --noheader -p '.$ppid.' -o cmd')),
 				'cpu' 	=> $pid_stat['cpu'],
 				'mem' 	=> $pid_stat['mem']
 			];
@@ -51,9 +53,9 @@ class Cronjob_status extends \Utils\cmd\Cmd {
 			apcu_store($apc_tck, $hertz, $cache_timeout);
 		}
 		
-		if(!$pagesize = apcu_fetch($apc_page)){
-			$pagesize = (int)shell_exec('getconf PAGESIZE') / 1024;
-			apcu_store($apc_page, $pagesize, $cache_timeout);
+		if(!$pagesize_kb = apcu_fetch($apc_page)){
+			$pagesize_kb = (int)shell_exec('getconf PAGESIZE') / 1024;
+			apcu_store($apc_page, $pagesize_kb, $cache_timeout);
 		}
 		
 		$uptime = explode(' ', shell_exec('cat /proc/uptime'))[0];
@@ -72,7 +74,7 @@ class Cronjob_status extends \Utils\cmd\Cmd {
 		
 		return [
 			'cpu' => round(($cputime / $hertz / $seconds) * 100, 1).'%',
-			'mem' => round($procstat[self::PROCSTAT_RSS] * $pagesize / 1024, 2).'M'
+			'mem' => round($procstat[self::PROCSTAT_RSS] * $pagesize_kb / 1024, 2).'M'
 		];
 	}
 }

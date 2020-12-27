@@ -81,13 +81,13 @@ class SSH extends \Utils\Net\Net_error_codes {
 	}
 	
 	//	Issue when using SFTP via SSH2 results in segmentation fault
-	/*public function upload(string $local, string $remote){
+	public function upload(string $local, string $remote){
 		if(!$this->sftp){
 			$this->sftp = ssh2_sftp($this->session);
 		}
 		
 		stream_copy_to_stream(fopen($local, 'r'), fopen('ssh2.sftp://'.intval($this->sftp).$remote, 'w'));
-	}*/
+	}
 	
 	public function disconnect(){
 		if($this->sftp){

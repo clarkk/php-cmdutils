@@ -89,6 +89,10 @@ class SSH extends \Utils\Net\Net_error_codes {
 	}
 	
 	public function disconnect(){
+		if($this->sftp){
+			unset($this->sftp);
+		}
+		
 		ssh2_disconnect($this->session);
 	}
 }

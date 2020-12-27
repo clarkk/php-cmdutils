@@ -126,9 +126,26 @@ abstract class Procs_queue extends Verbose {
 			
 			$this->read_proc_streams();
 			
-			if($proc_slot = $this->get_open_proc_slot()){
-				if($task = $this->task_fetch()){
-					$this->start_proc($proc_slot, $task['data'], $task['file']);
+			$proc_slots = $this->get_open_proc_slots();
+			
+			if($proc_slots['num']){
+				if($tasks = $this->task_fetch($proc_slots['num'])){
+					foreach($tasks as $task){
+						if(!$proc_slots['list']){
+							break;
+						}
+						
+						$proc_slot = key($proc_slots['list']);
+						
+						$this->start_proc($proc_slot, $task['data'], $task['file']);
+						
+						if($proc_slots['list'][$proc_slot] == 1){
+							unset($proc_slots['list'][$proc_slot]);
+						}
+						else{
+							$proc_slots['list'][$proc_slot]--;
+						}
+					}
 				}
 				else{
 					if($this->verbose){
@@ -139,17 +156,21 @@ abstract class Procs_queue extends Verbose {
 			
 			if(!$this->is_procs_running()){
 				if($this->verbose){
-					$this->verbose('... No processing tasks. Sleep 1 sec ...', self::COLOR_GRAY);
+					$this->verbose('... No processing tasks ...', self::COLOR_GRAY);
 				}
 			}
 			
 			$this->ssh_connection_status();
 			
+			if($this->verbose){
+				$this->verbose('Sleep 1 sec...', self::COLOR_GRAY);
+			}
+			
 			sleep(1);
 		}
 	}
 	
-	abstract protected function task_fetch(): array;
+	abstract protected function task_fetch(int $num): array;
 	abstract protected function task_start(array $data, string $pid);
 	abstract protected function task_success(array $data, string $json);
 	abstract protected function task_failed(array $data);
@@ -416,28 +437,40 @@ abstract class Procs_queue extends Verbose {
 		$this->verbose($verbose.' (exitcode: '.$exitcode.')', $color);
 	}
 	
-	private function get_open_proc_slot(): string{
-		$num_procs = count($this->procs);
-		if($num_procs < $this->nproc){
+	private function get_open_proc_slots(): array{
+		$list 	= [];
+		$num 	= 0;
+		
+		$num_procs 		= count($this->procs);
+		$open_procs 	= $this->nproc - $num_procs;
+		
+		if($open_procs > 0){
 			if($this->verbose){
-				$this->verbose("Open proc slot at '".self::LOCALHOST."' ($num_procs/$this->nproc)", self::COLOR_GRAY);
+				$this->verbose("$open_procs open proc slots at '".self::LOCALHOST."' ($num_procs/$this->nproc)", self::COLOR_GRAY);
 			}
 			
-			return self::LOCALHOST;
+			$list[self::LOCALHOST] = $open_procs;
+			$num += $open_procs;
 		}
 		
 		foreach($this->workers as $host => $worker){
-			$num_procs = count($worker['procs']);
-			if($num_procs < $worker['nproc']){
+			$num_procs 		= count($worker['procs']);
+			$open_procs 	= $worker['nproc'] - $num_procs;
+			
+			if($open_procs > 0){
 				if($this->verbose){
-					$this->verbose("Open SSH slot at '$host' ($num_procs/".$worker['nproc'].")", self::COLOR_GRAY);
+					$this->verbose("$open_procs open SSH slots at '$host' ($num_procs/".$worker['nproc'].")", self::COLOR_GRAY);
 				}
 				
-				return $host;
+				$list[$host] = $open_procs;
+				$num += $open_procs;
 			}
 		}
 		
-		return '';
+		return [
+			'list'	=> $list,
+			'num'	=> $num
+		];
 	}
 	
 	private function check_timeout(): bool{

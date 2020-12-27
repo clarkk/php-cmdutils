@@ -8,6 +8,7 @@ class Cronjob_status extends \Utils\cmd\Cmd {
 	const PROCSTAT_CUTIME 		= 15;
 	const PROCSTAT_CSTIME 		= 16;
 	const PROCSTAT_STARTTIME 	= 21;
+	const PROCSTAT_VSIZE 		= 22;
 	const PROCSTAT_RSS 			= 23;
 	
 	public function scan(string $task_name){
@@ -52,7 +53,7 @@ class Cronjob_status extends \Utils\cmd\Cmd {
 		
 		return [
 			'cpu' => round(($cputime / $hertz / $seconds) * 100, 1),
-			'mem' => round($procstat[self::PROCSTAT_RSS] / 1024).'K'
+			'mem' => round(($procstat[self::PROCSTAT_RSS] + $procstat[self::PROCSTAT_VSIZE]) / 1024).'K'
 		];
 	}
 }

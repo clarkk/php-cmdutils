@@ -56,8 +56,14 @@ class Cronjob_status extends \Utils\cmd\Cmd {
 			apcu_store($apc_page, $pagesize, $cache_timeout);
 		}
 		
-		$uptime 	= explode(' ', shell_exec('cat /proc/uptime'))[0];
-		$procstat 	= explode(' ', shell_exec('cat /proc/'.$pid.'/stat'));
+		$uptime = explode(' ', shell_exec('cat /proc/uptime'))[0];
+		
+		if(!$procstat = explode(' ', shell_exec('cat /proc/'.$pid.'/stat'))){
+			return [
+				'cpu' => '0%',
+				'mem' => '0M'
+			];
+		}
 		
 		$cputime 	= $procstat[self::PROCSTAT_UTIME] + $procstat[self::PROCSTAT_STIME] + $procstat[self::PROCSTAT_CUTIME] + $procstat[self::PROCSTAT_CSTIME];
 		$starttime 	= $procstat[self::PROCSTAT_STARTTIME];

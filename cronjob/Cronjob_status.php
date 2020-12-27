@@ -8,7 +8,6 @@ class Cronjob_status extends \Utils\cmd\Cmd {
 	const PROCSTAT_CUTIME 		= 15;
 	const PROCSTAT_CSTIME 		= 16;
 	const PROCSTAT_STARTTIME 	= 21;
-	const PROCSTAT_VSIZE 		= 22;
 	const PROCSTAT_RSS 			= 23;
 	
 	public function scan(string $task_name){
@@ -25,7 +24,7 @@ class Cronjob_status extends \Utils\cmd\Cmd {
 				'pid'	=> $pid,
 				'ppid'	=> (int)substr($proc, strpos($proc, ' ')),
 				'cmd'	=> substr($proc, strpos($proc, 'cronjob.php')),
-				'cpu' 	=> $pid_stat['cpu'].'%',
+				'cpu' 	=> $pid_stat['cpu'],
 				'mem' 	=> $pid_stat['mem']
 			];
 			
@@ -42,9 +41,11 @@ class Cronjob_status extends \Utils\cmd\Cmd {
 	}
 	
 	private function pid_stat(int $pid): array{
+		$hertz 		= (int)shell_exec('getconf CLK_TCK');
+		$pagesize 	= (int)shell_exec('getconf PAGESIZE');
+		
 		$uptime 	= explode(' ', shell_exec('cat /proc/uptime'))[0];
 		$procstat 	= explode(' ', shell_exec('cat /proc/'.$pid.'/stat'));
-		$hertz 		= (int)shell_exec('getconf CLK_TCK');
 		
 		$cputime 	= $procstat[self::PROCSTAT_UTIME] + $procstat[self::PROCSTAT_STIME] + $procstat[self::PROCSTAT_CUTIME] + $procstat[self::PROCSTAT_CSTIME];
 		$starttime 	= $procstat[self::PROCSTAT_STARTTIME];
@@ -52,8 +53,8 @@ class Cronjob_status extends \Utils\cmd\Cmd {
 		$seconds 	= $uptime - ($starttime / $hertz);
 		
 		return [
-			'cpu' => round(($cputime / $hertz / $seconds) * 100, 1),
-			'mem' => round(($procstat[self::PROCSTAT_RSS] + $procstat[self::PROCSTAT_VSIZE]) / 1024).'K'
+			'cpu' => round(($cputime / $hertz / $seconds) * 100, 1).'%',
+			'mem' => round($procstat[self::PROCSTAT_RSS] * $pagesize / 1024).'K'
 		];
 	}
 }

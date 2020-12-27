@@ -227,10 +227,20 @@ abstract class Procs_queue extends Verbose {
 			}
 		}
 		else{
+			//debug
+			echo "start SSH proc\n";
+			
 			$tmp_path = $this->task_tmp_path($this->workers[$proc_slot]['paths']['tmp'], $data);
 			$exitcode = $tmp_path.'exitcode';
 			
+			//debug
+			echo "start SSH mkdir\n";
+			
 			$this->workers[$proc_slot]['ssh']->exec('mkdir '.$tmp_path);
+			
+			//debug
+			echo "start SSH upload\n";
+			
 			$this->workers[$proc_slot]['ssh']->upload($file, $tmp_path.basename($file));
 			
 			$cmd = (new \Utils\Commands)->group_subprocs($this->task_php_command($this->workers[$proc_slot]['paths']['proc'], $tmp_path, $data, $file), $exitcode, true);

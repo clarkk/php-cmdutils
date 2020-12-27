@@ -303,9 +303,20 @@ abstract class Procs_queue extends Verbose {
 			foreach($worker['procs'] as $p => $proc){
 				$this->read_proc_stream($proc['ssh'], $proc['id'], true);
 				
+				//debug
+				if($is_worker){
+					echo "check SSH proc stopped\n";
+				}
+				
 				//	Check if proc has stopped
 				$worker['ssh']->exec('ps --noheader -p '.$proc['pid']);
 				if(!$worker['ssh']->output(true)){
+					
+					//debug
+					if($is_worker){
+						echo "read SSH exitcode\n";
+					}
+					
 					$worker['ssh']->exec('cat '.$proc['exitcode'].' 2>/dev/null');
 					$exitcode = $this->parse_exitcode($worker['ssh']->output(true));
 					
@@ -319,6 +330,11 @@ abstract class Procs_queue extends Verbose {
 					}
 					//	Success
 					else{
+						//debug
+						if($is_worker){
+							echo "read SSH JSON output\n";
+						}
+						
 						$worker['ssh']->exec('cat '.$proc['tmp_path'].'/'.self::OUTPUT_FILE);
 						$json = $worker['ssh']->output(true);
 						
@@ -338,6 +354,7 @@ abstract class Procs_queue extends Verbose {
 	}
 	
 	private function ssh_pool(string $proc_slot, SSH $ssh=null): ?SSH{
+		//	Add inactive SSH to pool
 		if($ssh){
 			$this->workers[$proc_slot]['ssh_pool'][] = $ssh;
 			
@@ -347,7 +364,9 @@ abstract class Procs_queue extends Verbose {
 			
 			return null;
 		}
+		//	Fetch SSH
 		else{
+			//	Fetch from SSH pool
 			if($this->workers[$proc_slot]['ssh_pool']){
 				if($this->verbose){
 					$this->verbose("\t\t\t\t\t\t\t\t\tSSH <-- Pool ".(count($this->workers[$proc_slot]['ssh_pool']) - 1), self::COLOR_BLUE);
@@ -356,6 +375,7 @@ abstract class Procs_queue extends Verbose {
 				return array_shift($this->workers[$proc_slot]['ssh_pool']);
 			}
 			
+			//	Initiate new SSH
 			if($this->verbose){
 				$this->verbose("\t\t\t\t\t\t\t\t\tSSH initiated", self::COLOR_BLUE);
 			}
@@ -403,11 +423,21 @@ abstract class Procs_queue extends Verbose {
 			$stderr 	= Cmd::PIPE_STDERR;
 		}
 		
+		//debug
+		if($is_worker){
+			echo "read SSH stdout\n";
+		}
+		
 		if($pipe_output = $interface->get_pipe_stream($stdout)){
 			if($this->verbose){
 				$this->verbose($verbose, self::COLOR_GRAY);
 				$this->verbose($pipe_output);
 			}
+		}
+		
+		//debug
+		if($is_worker){
+			echo "read SSH stderr\n";
 		}
 		
 		if($pipe_error = $interface->get_pipe_stream($stderr)){

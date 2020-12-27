@@ -19,16 +19,12 @@ class Cronjob_status {
 			$pid 	= (int)$proc;
 			$ppid 	= (int)substr($proc, strpos($proc, ' '));
 			
-			$pid_stat = $this->pid_stat($pid);
-			
 			$cmd = [
 				'pid'	=> $pid,
 				'ppid'	=> $ppid,
 				'cmd'	=> substr($proc, strpos($proc, 'cronjob.php')),
-				'pcmd'	=> trim(shell_exec('ps --noheader -p '.$ppid.' -o cmd')),
-				'cpu' 	=> $pid_stat['cpu'],
-				'mem' 	=> $pid_stat['mem']
-			];
+				'pcmd'	=> trim(shell_exec('ps --noheader -p '.$ppid.' -o cmd'))
+			] + $this->pid_stat($pid);
 			
 			if(strpos($proc, ' -process=')){
 				$procs[] = $cmd;
@@ -62,8 +58,9 @@ class Cronjob_status {
 		
 		if(!$procstat = explode(' ', shell_exec('cat /proc/'.$pid.'/stat'))){
 			return [
-				'cpu' => '0%',
-				'mem' => '0M'
+				'cpu'	=> '0%',
+				'mem'	=> '0M',
+				'time'	=> 0
 			];
 		}
 		
@@ -73,8 +70,9 @@ class Cronjob_status {
 		$seconds 	= $uptime - ($starttime / $hertz);
 		
 		return [
-			'cpu' => round(($cputime / $hertz / $seconds) * 100, 1).'%',
-			'mem' => round($procstat[self::PROCSTAT_RSS] * $pagesize_kb / 1024, 2).'M'
+			'cpu'	=> round(($cputime / $hertz / $seconds) * 100, 1).'%',
+			'mem'	=> round($procstat[self::PROCSTAT_RSS] * $pagesize_kb / 1024, 2).'M',
+			'time'	=> (int)$seconds
 		];
 	}
 }

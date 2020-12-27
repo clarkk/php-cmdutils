@@ -97,6 +97,8 @@ class SSH extends \Utils\Net\Net_error_codes {
 		echo "SSH disconnect\n";
 		
 		ssh2_disconnect($this->session);
+		$this->session = null;
+		unset($this->session);
 		
 		//debug
 		echo "SSH disconnected\n";

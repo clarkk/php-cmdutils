@@ -25,11 +25,6 @@ class Worker_init extends \Utils\SSH\SSH {
 		if(!$this->check_path($tmp_path)){
 			throw new SSH_error("tmp path not found: $tmp_path", self::ERR_PROCESS);
 		}
-		
-		$this->exec((new \Utils\Commands)->set_tmpfs($tmp_path));
-		if($this->output(true) != 'OK'){
-			throw new SSH_error("tmpfs could not be mounted: $tmp_path", self::ERR_PROCESS);
-		}
 	}
 	
 	private function check_path(string $path, bool $is_file=false): bool{

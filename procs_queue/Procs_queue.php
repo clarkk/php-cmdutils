@@ -411,6 +411,7 @@ abstract class Procs_queue extends Verbose {
 					}
 					
 					$ssh->disconnect();
+					unset($ssh);
 					unset($this->workers[$host]['ssh_pool'][$k]);
 				}
 			}
@@ -606,9 +607,11 @@ abstract class Procs_queue extends Verbose {
 	public function __destruct(){
 		foreach($this->workers as $host => $worker){
 			$worker['ssh']->disconnect();
+			unset($worker['ssh']);
 			
 			foreach($worker['ssh_pool'] as $ssh){
 				$ssh->disconnect();
+				unset($ssh);
 			}
 		}
 	}

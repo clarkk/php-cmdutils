@@ -93,7 +93,13 @@ class SSH extends \Utils\Net\Net_error_codes {
 			unset($this->sftp);
 		}
 		
+		//debug
+		echo "SSH disconnect\n";
+		
 		ssh2_disconnect($this->session);
+		
+		//debug
+		echo "SSH disconnected\n";
 	}
 }
 

@@ -7,7 +7,7 @@ abstract class Verbose {
 	
 	const COLOR_GRAY 	= '1;30';
 	const COLOR_GREEN 	= '0;32';
-	const COLOR_BLUE 	= '0;34';
+	const COLOR_BLUE 	= '0;36';
 	const COLOR_YELLOW 	= '1;33';
 	const COLOR_RED 	= '0;31';
 	const COLOR_PURPLE 	= '0;35';

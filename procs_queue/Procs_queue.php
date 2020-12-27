@@ -36,7 +36,7 @@ abstract class Procs_queue extends Verbose {
 	
 	public function __construct(string $task_name, int $verbose=0){
 		$this->verbose 		= $verbose;
-		$this->nproc 		= 1;//(int)shell_exec('nproc');
+		$this->nproc 		= (int)shell_exec('nproc');
 		$this->task_name 	= $task_name;
 		
 		parent::__construct();

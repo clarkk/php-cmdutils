@@ -276,27 +276,25 @@ abstract class Procs_queue extends Verbose {
 			$this->read_proc_stream($proc['cmd'], $proc['id']);
 			
 			if(!$proc['cmd']->is_running()){
-				$exitcode = $this->parse_exitcode(trim(shell_exec('cat '.$proc['exitcode'].' 2>/dev/null')));
+				$exitcode 	= $this->parse_exitcode(trim(shell_exec('cat '.$proc['exitcode'].' 2>/dev/null')));
+				$output 	= $proc['tmp_path'].'/'.self::OUTPUT_FILE;
 				
 				if($this->verbose){
 					$this->verbose_proc_complete('Proc '.$proc['id'], $exitcode);
 				}
 				
 				//	Failed
-				if($exitcode){
+				if($exitcode || !is_file($output)){
 					$this->task_failed($proc['data']);
 				}
 				//	Success
 				else{
-					if($json = file_get_contents($proc['tmp_path'].'/'.self::OUTPUT_FILE)){
-						$this->task_success($proc['data'], $json);
-						
-						if($this->verbose){
-							$this->verbose($json, self::COLOR_PURPLE);
-						}
-					}
-					else{
-						$this->task_failed($proc['data']);
+					$json = file_get_contents($output);
+					
+					$this->task_success($proc['data'], $json);
+					
+					if($this->verbose){
+						$this->verbose($json, self::COLOR_PURPLE);
 					}
 				}
 				
@@ -326,7 +324,7 @@ abstract class Procs_queue extends Verbose {
 					}
 					//	Success
 					else{
-						$worker['ssh']->exec('cat '.$proc['tmp_path'].'/'.self::OUTPUT_FILE);
+						$worker['ssh']->exec('cat '.$proc['tmp_path'].'/'.self::OUTPUT_FILE.' || false');
 						if($json = $worker['ssh']->output(true)){
 							$this->task_success($proc['data'], $json);
 							

@@ -12,6 +12,8 @@ use \Utils\SSH\SSH_error;
 use \Utils\Procs_queue\Worker_init;
 
 abstract class Procs_queue extends Verbose {
+	const SSH_KILL_TIMEOUT 	= false;
+	
 	protected $task_name;
 	
 	private $timeout 		= 999;
@@ -374,23 +376,32 @@ abstract class Procs_queue extends Verbose {
 		foreach($this->workers as $host => &$worker){
 			if($worker['ssh']->get_idle_time() > $this->ssh_timeout){
 				if($this->verbose){
-					$this->verbose("\t\t\t\t\t\t\t\t\tSSH worker status ($host)", self::COLOR_BLUE);
+					$this->verbose("\t\t\t\t\t\t\t\t\tMaster SSH ping $host", self::COLOR_BLUE);
 				}
 				
-				$worker['ssh']->exec('cd ./');
+				$worker['ssh']->exec('cd .');
 			}
 			
-			/*foreach($worker['ssh_pool'] as $k => &$ssh){
+			foreach($worker['ssh_pool'] as $k => &$ssh){
 				if($ssh->get_idle_time() > $this->ssh_timeout){
-					if($this->verbose){
-						$this->verbose("\t\t\t\t\t\t\t\t\tSSH timeout ($host) ".(count($worker['ssh_pool']) - 1), self::COLOR_BLUE);
+					if(self::SSH_KILL_TIMEOUT){
+						if($this->verbose){
+							$this->verbose("\t\t\t\t\t\t\t\t\tWorker SSH timeout kill $host (Pool: ".(count($worker['ssh_pool']) - 1).')', self::COLOR_BLUE);
+						}
+						
+						$ssh->disconnect();
+						//$ssh = null; unset($ssh); // fix
+						unset($this->workers[$host]['ssh_pool'][$k]);
 					}
-					
-					$ssh->disconnect();
-					//$ssh = null; unset($ssh); // fix
-					unset($this->workers[$host]['ssh_pool'][$k]);
+					else{
+						if($this->verbose){
+							$this->verbose("\t\t\t\t\t\t\t\t\tWorker SSH timeout ping $host (Pool: ".count($worker['ssh_pool']).')', self::COLOR_BLUE);
+						}
+						
+						$ssh->exec('cd .');
+					}
 				}
-			}*/
+			}
 		}
 	}
 	

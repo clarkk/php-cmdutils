@@ -88,7 +88,6 @@ abstract class Procs_queue extends Verbose {
 			
 			if(isset($ssh)){
 				$ssh->disconnect();
-				//$ssh = null; unset($ssh); // fix
 			}
 		}
 	}
@@ -237,7 +236,6 @@ abstract class Procs_queue extends Verbose {
 			
 			$this->workers[$proc_slot]['ssh']->exec('mkdir '.$tmp_path);
 			$this->workers[$proc_slot]['ssh']->upload($file, $tmp_path.basename($file));
-			//shell_exec("scp $file root@$proc_slot:".$tmp_path.basename($file));
 			
 			$cmd = (new \Utils\Commands)->group_subprocs($this->task_php_command($this->workers[$proc_slot]['paths']['proc'], $tmp_path, $data, $file), $exitcode, true);
 			
@@ -290,12 +288,15 @@ abstract class Procs_queue extends Verbose {
 				}
 				//	Success
 				else{
-					$json = file_get_contents($proc['tmp_path'].'/'.self::OUTPUT_FILE);
-					
-					$this->task_success($proc['data'], $json);
-					
-					if($this->verbose){
-						$this->verbose($json, self::COLOR_PURPLE);
+					if($json = file_get_contents($proc['tmp_path'].'/'.self::OUTPUT_FILE)){
+						$this->task_success($proc['data'], $json);
+						
+						if($this->verbose){
+							$this->verbose($json, self::COLOR_PURPLE);
+						}
+					}
+					else{
+						$this->task_failed($proc['data']);
 					}
 				}
 				
@@ -326,12 +327,15 @@ abstract class Procs_queue extends Verbose {
 					//	Success
 					else{
 						$worker['ssh']->exec('cat '.$proc['tmp_path'].'/'.self::OUTPUT_FILE);
-						$json = $worker['ssh']->output(true);
-						
-						$this->task_success($proc['data'], $json);
-						
-						if($this->verbose){
-							$this->verbose($json, self::COLOR_PURPLE);
+						if($json = $worker['ssh']->output(true)){
+							$this->task_success($proc['data'], $json);
+							
+							if($this->verbose){
+								$this->verbose($json, self::COLOR_PURPLE);
+							}
+						}
+						else{
+							$this->task_failed($proc['data']);
 						}
 					}
 					
@@ -392,7 +396,6 @@ abstract class Procs_queue extends Verbose {
 						}
 						
 						$ssh->disconnect();
-						//$ssh = null; unset($ssh); // fix
 						unset($this->workers[$host]['ssh_pool'][$k]);
 					}
 					else{
@@ -586,11 +589,9 @@ abstract class Procs_queue extends Verbose {
 	public function __destruct(){
 		foreach($this->workers as $host => $worker){
 			$worker['ssh']->disconnect();
-			//$worker['ssh'] = null; unset($worker['ssh']); // fix
 			
 			foreach($worker['ssh_pool'] as $ssh){
 				$ssh->disconnect();
-				//$ssh = null; unset($ssh); // fix
 			}
 		}
 	}

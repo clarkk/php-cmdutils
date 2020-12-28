@@ -36,7 +36,7 @@ abstract class Procs_queue extends Verbose {
 	
 	const OUTPUT_FILE 		= 'output.json';
 	
-	const VERBOSE_SSH_INDENTATION = "\t\t\t\t\t\t\t\t";
+	const VERBOSE_SSH_INDENTATION = "\t\t\t\t\t\t\t\t\t";
 	
 	public function __construct(string $task_name, int $verbose=0){
 		$this->verbose 		= $verbose;

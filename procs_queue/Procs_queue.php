@@ -324,7 +324,7 @@ abstract class Procs_queue extends Verbose {
 					}
 					//	Success
 					else{
-						$worker['ssh']->exec('cat '.$proc['tmp_path'].'/'.self::OUTPUT_FILE.' || false');
+						$worker['ssh']->exec('cat '.$proc['tmp_path'].'/'.self::OUTPUT_FILE.' 2>/dev/null');
 						if($json = $worker['ssh']->output(true)){
 							$this->task_success($proc['data'], $json);
 							

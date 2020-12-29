@@ -2,7 +2,7 @@
 
 namespace Utils\Cronjob;
 
-abstract class Maintenance extends Task {
+abstract class Task_maintenance extends Task {
 	protected function purge(string $table, int $days, string $field='time'){
 		$time = $this->get_time($days);
 		

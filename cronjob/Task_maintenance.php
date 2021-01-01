@@ -10,7 +10,7 @@ abstract class Task_maintenance extends Task {
 			echo "Purge $table: ".$field.' <= '.$time."\n";
 		}
 		
-		(new \dbdata\Delete)->where([
+		(new \dbdata\Delete)->system(\dbdata\Data::LEVEL_SYSTEM)->where([
 			$field.' <' => $time
 		])->exec($table, 0);
 	}

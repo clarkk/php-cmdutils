@@ -2,9 +2,8 @@
 
 namespace Utils\Cronjob;
 
-abstract class Task {
+abstract class Task extends \Utils\Verbose {
 	protected $task_name;
-	protected $verbose = false;
 	
 	private $time_start;
 	
@@ -13,6 +12,8 @@ abstract class Task {
 		$this->verbose 		= $verbose;
 		
 		$this->time_start 	= time();
+		
+		parent::__construct();
 		
 		$this->exec();
 	}

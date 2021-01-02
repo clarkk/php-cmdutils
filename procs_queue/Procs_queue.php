@@ -11,7 +11,7 @@ use \Utils\SSH\SSH;
 use \Utils\SSH\SSH_error;
 use \Utils\Procs_queue\Worker_init;
 
-abstract class Procs_queue extends Verbose {
+abstract class Procs_queue extends \Utils\Verbose {
 	const SSH_KILL_TIMEOUT 	= false;
 	
 	const TIMEOUT 			= 999;
@@ -39,9 +39,9 @@ abstract class Procs_queue extends Verbose {
 	const VERBOSE_SSH_INDENTATION = "\t\t\t\t\t\t\t\t\t";
 	
 	public function __construct(string $task_name, int $verbose=0){
-		$this->verbose 		= $verbose;
 		$this->nproc 		= (int)shell_exec('nproc');
 		$this->task_name 	= $task_name;
+		$this->verbose 		= $verbose;
 		
 		parent::__construct();
 		

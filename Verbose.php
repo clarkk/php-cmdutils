@@ -1,6 +1,6 @@
 <?php
 
-namespace Utils\Procs_queue;
+namespace Utils;
 
 abstract class Verbose {
 	protected $verbose 	= 0;

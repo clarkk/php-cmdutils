@@ -14,10 +14,10 @@ use \Utils\Procs_queue\Worker_init;
 abstract class Procs_queue extends Verbose {
 	const SSH_KILL_TIMEOUT 	= false;
 	
-	protected $task_name;
+	const TIMEOUT 			= 999;
+	const SSH_TIMEOUT 		= 60;
 	
-	private $timeout 		= 999;
-	private $ssh_timeout 	= 60;
+	protected $task_name;
 	
 	private $nproc;
 	private $procs 			= [];
@@ -378,7 +378,7 @@ abstract class Procs_queue extends Verbose {
 	
 	private function ssh_connection_status(){
 		foreach($this->workers as $host => &$worker){
-			if($worker['ssh']->get_idle_time() > $this->ssh_timeout){
+			if($worker['ssh']->get_idle_time() > self::SSH_TIMEOUT){
 				if($this->verbose){
 					$this->verbose(self::VERBOSE_SSH_INDENTATION.'Timeout: Master SSH ping '.$host, self::COLOR_BLUE);
 				}
@@ -387,7 +387,7 @@ abstract class Procs_queue extends Verbose {
 			}
 			
 			foreach($worker['ssh_pool'] as $k => &$ssh){
-				if($ssh->get_idle_time() > $this->ssh_timeout){
+				if($ssh->get_idle_time() > self::SSH_TIMEOUT){
 					if(self::SSH_KILL_TIMEOUT){
 						if($this->verbose){
 							$this->verbose(self::VERBOSE_SSH_INDENTATION.'Worker SSH kill timeout '.$host.' (Pool: '.(count($worker['ssh_pool']) - 1).')', self::COLOR_BLUE);
@@ -571,7 +571,7 @@ abstract class Procs_queue extends Verbose {
 	}
 	
 	private function get_remain_time(): int{
-		return time() - $this->time_start - $this->timeout;
+		return time() - $this->time_start - self::TIMEOUT;
 	}
 	
 	private function start_time(){

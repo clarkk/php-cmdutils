@@ -79,6 +79,9 @@ class Net extends Net_error_codes {
 			curl_setopt($this->curl, CURLOPT_POST, true);
 			curl_setopt($this->curl, CURLOPT_POSTFIELDS, $post);
 		}
+		else{
+			curl_setopt($this->curl, CURLOPT_POST, false);
+		}
 		
 		foreach($options as $key => $value){
 			curl_setopt($this->curl, $key, $value);

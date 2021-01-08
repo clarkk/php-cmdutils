@@ -67,7 +67,6 @@ class Cmd {
 	
 	public function get_pipe_stream(int $pipe): string{
 		return stream_get_contents($this->pipes[$pipe]);
-		
 	}
 	
 	public function exec(string $command, bool $trim=false){
@@ -76,7 +75,7 @@ class Cmd {
 			self::PIPE_STDOUT 	=> ['pipe', 'w'],
 			self::PIPE_STDERR 	=> ['pipe', 'w']
 		], $this->pipes);
-		fclose($this->pipes[0]);
+		fclose($this->pipes[self::PIPE_STDIN]);
 		
 		if($this->is_stream){
 			stream_set_read_buffer($this->pipes[self::PIPE_STDOUT], 0);

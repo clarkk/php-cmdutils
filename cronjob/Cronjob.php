@@ -25,7 +25,7 @@ class Cronjob extends Argv {
 		
 		if($use_db){
 			try{
-				$result = (new \dbdata\Get)->exec('cronjob', [
+				$row = (new \dbdata\Get)->exec('cronjob', [
 					'select' => [
 						'id',
 						'is_running_time'
@@ -33,32 +33,30 @@ class Cronjob extends Argv {
 					'where' => [
 						'name' => $this->task_name
 					]
-				]);
-				if($row = $result->fetch()){
-					if(!$row['is_running_time']){
-						$this->cronjob_id = $row['id'];
-						
-						$this->exec($use_db);
-					}
-					else{
-						if($this->verbose){
-							echo "Cronjob '$this->task_name' is already running and has been running for ".(time() - $row['is_running_time'])." secs\n";
-						}
-					}
-				}
+				])->fetch();
+				
 				//	Return error if cronjob is invalid
-				else{
+				if(!$row){
 					throw new Error('Cronjob invalid: '.$this->task_name);
+				}
+				
+				if(!$row['is_running_time']){
+					$this->cronjob_id = $row['id'];
+					
+					$this->exec($use_db);
+				}
+				else{
+					if($this->verbose){
+						echo "Cronjob '$this->task_name' is already running and has been running for ".(time() - $row['is_running_time'])." secs\n";
+					}
 				}
 			}
 			catch(\dbdata\Error_db $e){
 				$code = $e->getCode();
 				
-				$error = 'MYSQL error: '.$code.'; '.\Log\Err::format($e);
-				
-				\Log\Log::err($error, \Log\Log::ERR_FATAL);
-				
-				echo $error;
+				if($this->verbose){
+					echo 'MYSQL error: '.$code.'; '.\Log\Err::format($e)."\n";
+				}
 				
 				\dbdata\DB::rollback();
 				
@@ -67,29 +65,19 @@ class Cronjob extends Argv {
 					
 				}
 				else{
-					//$this->reset_cronjob();
+					boot_catch_error($e);
 				}
 			}
 			catch(\Throwable $e){
 				\dbdata\DB::rollback();
 				
 				boot_catch_error($e);
-				
-				//$this->reset_cronjob();
 			}
 		}
 		else{
 			$this->exec($use_db);
 		}
 	}
-	
-	/*private function reset_cronjob(){
-		if($this->cronjob_id){
-			(new \dbdata\Put)->exec('cronjob', $this->cronjob_id, [
-				'is_running_time' => 0
-			]);
-		}
-	}*/
 	
 	private function exec(bool $use_db){
 		$ppid 	= posix_getppid();

@@ -24,15 +24,20 @@ class Cronjob extends Argv {
 		}
 		
 		if($use_db){
+			//	Start transaction with read lock to prevent multiple of the same cronjob to run in parallel
+			\dbdata\DB::begin();
+			
 			try{
-				$row = (new \dbdata\Get)->exec('cronjob', [
-					'select' => [
-						'id',
-						'is_running_time'
-					],
-					'where' => [
-						'name' => $this->task_name
-					]
+				$row = (new \dbdata\Get)
+					->get_lock()
+					->exec('cronjob', [
+						'select' => [
+							'id',
+							'is_running_time'
+						],
+						'where' => [
+							'name' => $this->task_name
+						]
 				])->fetch();
 				
 				//	Return error if cronjob is invalid
@@ -97,6 +102,9 @@ class Cronjob extends Argv {
 				'ppid'					=> $ppid,
 				'pid'					=> $pid
 			]);
+			
+			//	Commit transaction and release read lock
+			\dbdata\DB::commit();
 		}
 		
 		require_once $this->cronjob_file;

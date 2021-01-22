@@ -93,7 +93,9 @@ class SSH extends \Utils\Net\Net_error_codes {
 			unset($this->sftp);
 		}
 		
-		ssh2_disconnect($this->session);
+		//	Fix: segfault issue on disconnect
+		unset($this->session);
+		//ssh2_disconnect($this->session);
 	}
 }
 

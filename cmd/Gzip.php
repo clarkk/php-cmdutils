@@ -17,6 +17,10 @@ class Gzip extends Cmd {
 		];
 		
 		$this->input($this->start_block($filename, $stats).$file.$this->end_block($file, true));
+		
+		if($output = $this->get_pipe_stream()){
+			echo $output;
+		}
 	}
 	
 	public function file(string $filename, string $file){
@@ -30,11 +34,27 @@ class Gzip extends Cmd {
 		}
 		
 		clearstatcache();
+		
+		if($output = $this->get_pipe_stream()){
+			echo $output;
+		}
 	}
 	
 	public function end(){
 		$this->input(pack('a512', ''));
 		fclose($this->pipes[self::PIPE_STDIN]);
+		
+		while(true){
+			if($output = $this->get_pipe_stream()){
+				echo $output;
+			}
+			
+			if(!$this->is_running()){
+				$this->close();
+				
+				break;
+			}
+		}
 	}
 	
 	private function start_block(string $filename, array $stats, bool $is_dir=false): string{

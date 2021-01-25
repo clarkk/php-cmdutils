@@ -19,6 +19,9 @@ class Cmd {
 	const PIPE_STDOUT 		= 1;
 	const PIPE_STDERR 		= 2;
 	
+	const SIGKILL 			= 9;
+	const SIGTERM 			= 15;
+	
 	public function __construct(bool $is_stream=false, bool $use_stdin=false){
 		$this->is_stream = $is_stream;
 		$this->use_stdin = $use_stdin;
@@ -65,7 +68,7 @@ class Cmd {
 			return true;
 		}
 		else{
-			$this->termsig 	= in_array($status['termsig'], [SIGKILL, SIGTERM]);
+			$this->termsig 	= $status['termsig'] == self::SIGKILL || $status['termsig'] == self::SIGTERM;
 			$this->exitcode = $status['termsig'];
 			
 			return false;

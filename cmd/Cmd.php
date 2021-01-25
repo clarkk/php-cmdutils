@@ -6,8 +6,10 @@ class Cmd {
 	private $output 		= '';
 	
 	private $is_stream 		= false;
+	private $use_stdin 		= false;
+	
 	private $proc;
-	private $pipes 			= [];
+	protected $pipes 		= [];
 	
 	private $pid;
 	private $exitcode 		= -1;
@@ -17,8 +19,9 @@ class Cmd {
 	const PIPE_STDOUT 		= 1;
 	const PIPE_STDERR 		= 2;
 	
-	public function __construct(bool $is_stream=false){
+	public function __construct(bool $is_stream=false, bool $use_stdin=false){
 		$this->is_stream = $is_stream;
+		$this->use_stdin = $use_stdin;
 	}
 	
 	public function output(bool $trim=false, bool $stream_wait=false): string{
@@ -32,6 +35,10 @@ class Cmd {
 		else{
 			return $trim ? trim($this->output) : $this->output;
 		}
+	}
+	
+	public function input(string $data){
+		fwrite($this->pipes[self::PIPE_STDIN], $data);
 	}
 	
 	public function is_success(): bool{
@@ -65,7 +72,7 @@ class Cmd {
 		}
 	}
 	
-	public function get_pipe_stream(int $pipe): string{
+	public function get_pipe_stream(int $pipe=self::PIPE_STDOUT): string{
 		return stream_get_contents($this->pipes[$pipe]);
 	}
 	
@@ -75,7 +82,10 @@ class Cmd {
 			self::PIPE_STDOUT 	=> ['pipe', 'w'],
 			self::PIPE_STDERR 	=> ['pipe', 'w']
 		], $this->pipes);
-		fclose($this->pipes[self::PIPE_STDIN]);
+		
+		if(!$this->use_stdin){
+			fclose($this->pipes[self::PIPE_STDIN]);
+		}
 		
 		if($this->is_stream){
 			stream_set_read_buffer($this->pipes[self::PIPE_STDOUT], 0);
@@ -103,3 +113,5 @@ class Cmd {
 		$this->exitcode = proc_close($this->proc);
 	}
 }
+
+class Error extends \Error {}

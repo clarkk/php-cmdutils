@@ -83,8 +83,7 @@ class Gzip extends Cmd {
 		
 		$checksum_data = pack(
 			'a8',
-			sprintf('%6s ',
-			decoct($checksum))
+			sprintf('%6s ',		decoct($checksum))
 		);
 		
 		for($i=0, $j=148; $i<8; $i++, $j++){
@@ -97,6 +96,9 @@ class Gzip extends Cmd {
 	private function end_block(string $file, bool $is_stream=false): string{
 		$filesize = $is_stream ? strlen($file) : filesize($file);
 		
-		return pack('a'.(512 * ceil($filesize / 512) - $filesize), '');
+		return pack(
+			'a'.(512 * ceil($filesize / 512) - $filesize),
+			''
+		);
 	}
 }

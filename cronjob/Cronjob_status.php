@@ -13,7 +13,7 @@ class Cronjob_status {
 	public function scan(string $task_name){
 		$procs = [];
 		
-		$output = trim(shell_exec('ps --noheader -o pid,ppid,cmd -C php | grep "cronjob.php '.$task_name.'"'));
+		$output = trim(shell_exec('ps --noheader -o pid,ppid,cmd -C php | grep "cronjob\.php '.$task_name.'\b"'));
 		
 		foreach(array_filter(explode("\n", $output)) as $proc){
 			$pid 	= (int)$proc;

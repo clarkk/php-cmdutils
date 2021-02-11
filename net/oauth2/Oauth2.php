@@ -20,6 +20,7 @@ class Oauth2 extends \Utils\Net\Net {
 	
 	public function token_request(string $token_name, string $url, array $params, bool $force_token=false){
 		$this->decode_type();
+		$this->keep_alive();
 		
 		$this->token_name 	= $token_name;
 		$this->token_url 	= $url;
@@ -48,8 +49,6 @@ class Oauth2 extends \Utils\Net\Net {
 	}
 	
 	private function fetch_token(string $url, array $params): int{
-		$this->keep_alive();
-		
 		$response = $this->request($url, http_build_query($params), [
 			self::CONTENT_TYPE.': '.self::CONTENT_TYPE_FORM
 		]);

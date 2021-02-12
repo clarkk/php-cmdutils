@@ -5,7 +5,7 @@ namespace Utils\Net\Oauth2;
 // https://www.tutorialspoint.com/oauth2.0/oauth2.0_iana_considerations.htm
 
 class Oauth2 extends \Utils\Net\Net {
-	const PREFIX_TOKEN_CACHE 	= 'OAUTH_TOKEN_';
+	const PREFIX_TOKEN_CACHE 	= 'OAUTH2_TOKEN_';
 	
 	const TOKEN_CLIENT_ID 		= 'client_id';
 	const TOKEN_CLIENT_SECRET 	= 'client_secret';
@@ -19,7 +19,6 @@ class Oauth2 extends \Utils\Net\Net {
 	private $token_params;
 	
 	public function token_request(string $token_name, string $url, array $params, bool $force_token=false){
-		$this->decode_type();
 		$this->keep_alive();
 		
 		$this->token_name 	= $token_name;
@@ -41,6 +40,7 @@ class Oauth2 extends \Utils\Net\Net {
 		if(in_array($response['code'], $return_codes)){
 			return $response;
 		}
+		//	Re-try to request token
 		else{
 			$this->token_request($this->token_name, $this->token_url, $this->token_params, true);
 			
@@ -52,6 +52,8 @@ class Oauth2 extends \Utils\Net\Net {
 		$response = $this->request($url, http_build_query($params), [
 			self::CONTENT_TYPE.': '.self::CONTENT_TYPE_FORM
 		]);
+		
+		$this->decode_response($response['type'], $response['response']);
 		
 		$this->token = $response['response']['token_type'].' '.$response['response']['access_token'];
 		

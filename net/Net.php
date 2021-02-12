@@ -97,11 +97,7 @@ class Net extends Net_error_codes {
 		$type = $this->get_content_type();
 		
 		if($this->decode_type){
-			switch($type){
-				case self::CONTENT_TYPE_JSON:
-					$this->decode_json($response);
-					break;
-			}
+			$this->decode_response($type, $response);
 		}
 		
 		if(!$this->keep_alive){
@@ -131,12 +127,16 @@ class Net extends Net_error_codes {
 		return '--'.$this->boundary.'--';
 	}
 	
-	private function decode_json(string &$response){
-		try{
-			$response = json_decode($response, true, 512, JSON_THROW_ON_ERROR);
-		}
-		catch(\Exception $e){
-			throw new Error('JSON decode error', self::ERR_RESPONSE);
+	protected function decode_response(string $type, string &$response){
+		switch($type){
+			case self::CONTENT_TYPE_JSON:
+				try{
+					$response = json_decode($response, true, 512, JSON_THROW_ON_ERROR);
+				}
+				catch(\Exception $e){
+					throw new Error('JSON decode error', self::ERR_RESPONSE);
+				}
+				break;
 		}
 	}
 	

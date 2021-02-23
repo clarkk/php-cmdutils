@@ -12,7 +12,7 @@ use \Utils\SSH\SSH_error;
 use \Utils\Procs_queue\Worker_init;
 
 abstract class Procs_queue extends \Utils\Verbose {
-	const SSH_KILL_TIMEOUT 	= false;
+	const SSH_KILL_TIMEOUT 	= true;
 	
 	const TIMEOUT 			= 999;
 	const SSH_TIMEOUT 		= 60;

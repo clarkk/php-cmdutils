@@ -13,4 +13,8 @@ class Commands {
 	public function group_subprocs(string $command, string $exitcode='', bool $print_pid=false): string{
 		return ($print_pid ? 'echo $$;' : '').'unshare -fp --kill-child -- bash -c \''.$command.'; echo $? > '.$exitcode.'\'';
 	}
+	
+	public function timeout_proc(string $command, int $timeout): string{
+		return ($timeout ? 'timeout --kill-after='.$timeout.' --signal='.Cmd\Cmd::SIGKILL.' --preserve-status '.$timeout.' ' : '').$command;
+	}
 }

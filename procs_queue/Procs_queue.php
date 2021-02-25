@@ -18,6 +18,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 	const SSH_TIMEOUT 		= 60;
 	
 	protected $task_name;
+	protected $task_timeout = 0;
 	
 	private $nproc;
 	private $procs 			= [];
@@ -547,13 +548,17 @@ abstract class Procs_queue extends \Utils\Verbose {
 	}
 	
 	private function task_php_command(string $php_path, string $tmp_path, array $data, string $file): string{
+		if($this->verbose && $this->task_timeout){
+			$this->verbose('Task timeout: '.$this->task_timeout, self::COLOR_YELLOW);
+		}
+		
 		$process_data = [
 			'data'	=> $data,
 			'tmp'	=> $tmp_path,
 			'file'	=> basename($file)
 		];
 		
-		return 'php '.$php_path.' '.$this->task_name.' '.($this->verbose ? '-v='.$this->verbose : '').' -process='.base64_encode(serialize($process_data));
+		return (new \Utils\Commands)->timeout_proc('php '.$php_path.' '.$this->task_name.' '.($this->verbose ? '-v='.$this->verbose : '').' -process='.base64_encode(serialize($process_data)), $this->task_timeout);
 	}
 	
 	private function is_procs_running(): bool{

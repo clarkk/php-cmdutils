@@ -2,16 +2,14 @@
 
 namespace Utils\Cmd;
 
-class Cmd {
+class Cmd extends Proc {
 	private $output 		= '';
 	
 	private $is_stream 		= false;
 	private $use_stdin 		= false;
 	
-	private $proc;
 	protected $pipes 		= [];
 	
-	private $pid;
 	private $exitcode 		= -1;
 	private $termsig 		= false;
 	

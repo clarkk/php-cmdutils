@@ -17,6 +17,17 @@ abstract class Procs_queue extends \Utils\Verbose {
 	const TIMEOUT 			= 999;
 	const SSH_TIMEOUT 		= 60;
 	
+	/*
+	*	Highest priority:		-20
+	*	High priority:			< -9
+	*	Above normal priority:	< -4
+	*	Normal priority:		-5 to 5
+	*	Below normal priority:	> 5
+	*	Idle priority:			> 9
+	*	Lowest priority:		19	
+	*/
+	const TASK_PROC_NICE 	= 6;
+	
 	protected $task_name;
 	protected $task_timeout = 0;
 	
@@ -234,6 +245,10 @@ abstract class Procs_queue extends \Utils\Verbose {
 		else{
 			$tmp_path = $this->task_tmp_path($this->workers[$proc_slot]['paths']['tmp'], $data);
 			$exitcode = $tmp_path.'exitcode';
+			
+			/*
+				Future improvement: mkdir and upload to worker is blocking the code. Should be a part of the ssh execution
+			*/
 			
 			$this->workers[$proc_slot]['ssh']->exec('mkdir '.$tmp_path);
 			$this->workers[$proc_slot]['ssh']->upload($file, $tmp_path.basename($file));
@@ -558,7 +573,13 @@ abstract class Procs_queue extends \Utils\Verbose {
 			'file'	=> basename($file)
 		];
 		
-		return (new \Utils\Commands)->timeout_proc('php '.$php_path.' '.$this->task_name.' '.($this->verbose ? '-v='.$this->verbose : '').' -process='.base64_encode(serialize($process_data)), $this->task_timeout);
+		$cmd = '';
+		if(self::TASK_PROC_NICE){
+			$cmd .= 'nice -n '.self::TASK_PROC_NICE.' ';
+		}
+		$cmd .= 'php '.$php_path.' '.$this->task_name.' '.($this->verbose ? '-v='.$this->verbose : '').' -process='.base64_encode(serialize($process_data));
+		
+		return (new \Utils\Commands)->timeout_proc($cmd, $this->task_timeout);
 	}
 	
 	private function is_procs_running(): bool{

@@ -46,7 +46,7 @@ class Proc {
 			apcu_store($apc_page, $pagesize_kb, $cache_timeout);
 		}
 		
-		$uptime = explode(' ', shell_exec('cat /proc/uptime'))[0];
+		$uptime = explode(' ', file_get_contents('/proc/uptime'))[0];
 		
 		if(!$procstat = $this->get_proc_stat($pid)){
 			return [
@@ -69,6 +69,6 @@ class Proc {
 	}
 	
 	private function get_proc_stat(int $pid): array{
-		return explode(' ', shell_exec('cat /proc/'.$pid.'/stat'));
+		return explode(' ', file_get_contents('/proc/'.$pid.'/stat'));
 	}
 }

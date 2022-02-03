@@ -69,6 +69,6 @@ class Proc {
 	}
 	
 	private function get_proc_stat(int $pid): array{
-		return explode(' ', file_get_contents('/proc/'.$pid.'/stat'));
+		return explode(' ', file_get_contents('/proc/'.$pid.'/stat') ?: '');
 	}
 }

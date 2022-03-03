@@ -31,6 +31,8 @@ abstract class Procs_queue extends \Utils\Verbose {
 	protected $task_name;
 	protected $task_timeout = 0;
 	
+	protected $loop_sleep 	= 1;
+	
 	private $nproc;
 	private $procs 			= [];
 	
@@ -179,10 +181,10 @@ abstract class Procs_queue extends \Utils\Verbose {
 			$this->ssh_connection_status();
 			
 			if($this->verbose){
-				$this->verbose('Sleep 1 sec...', self::COLOR_GRAY);
+				$this->verbose('Sleep '.$this->loop_sleep.' sec...', self::COLOR_GRAY);
 			}
 			
-			sleep(1);
+			sleep($this->loop_sleep);
 		}
 	}
 	
@@ -192,7 +194,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 	abstract protected function task_failed(array $data);
 	
 	private function kill_aborted_tasks(){
-		if($this->redis->lLen($this->redis_abort_list)){
+		if($this->redis && $this->redis->lLen($this->redis_abort_list)){
 			if($entries = $this->redis->multi()->lRange($this->redis_abort_list, 0, -1)->del($this->redis_abort_list)->exec()[0]){
 				foreach($entries as $entry){
 					$proc = explode(':', $entry);

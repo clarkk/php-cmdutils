@@ -26,17 +26,18 @@ abstract class Procs_queue extends \Utils\Verbose {
 	*	Idle priority:			> 9
 	*	Lowest priority:		19	
 	*/
-	const TASK_PROC_NICE 	= 6;
+	const TASK_PROC_NICE 		= 6;
 	
 	protected $task_name;
-	protected $task_timeout = 0;
+	protected $task_timeout 	= 0;
 	
-	protected $loop_sleep 	= 1;
+	protected $loop_idle_sleep 	= 1;
 	
+	protected $nproc_max 		= 0;
 	private $nproc;
-	private $procs 			= [];
+	private $procs 				= [];
 	
-	private $workers 		= [];
+	private $workers 			= [];
 	
 	private $time_start;
 	
@@ -56,6 +57,10 @@ abstract class Procs_queue extends \Utils\Verbose {
 		$this->nproc 		= (int)shell_exec('nproc');
 		$this->task_name 	= $task_name;
 		$this->verbose 		= $verbose;
+		
+		if($this->nproc_max && $this->nproc_max < $this->nproc){
+			$this->nproc = $this->nproc_max;
+		}
 		
 		parent::__construct();
 		
@@ -181,10 +186,10 @@ abstract class Procs_queue extends \Utils\Verbose {
 			$this->ssh_connection_status();
 			
 			if($this->verbose){
-				$this->verbose('Sleep '.$this->loop_sleep.' sec...', self::COLOR_GRAY);
+				$this->verbose('Sleep '.$this->loop_idle_sleep.' sec...', self::COLOR_GRAY);
 			}
 			
-			sleep($this->loop_sleep);
+			sleep($this->loop_idle_sleep);
 		}
 	}
 	

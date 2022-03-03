@@ -54,7 +54,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 	const VERBOSE_SSH_INDENTATION = "\t\t\t\t\t\t\t\t\t";
 	
 	public function __construct(string $task_name, int $verbose=0){
-		$this->nproc 		= $this->nproc_max_limit((int)shell_exec('nproc'));
+		$this->nproc 		= $this->nproc_max_limit(shell_exec('nproc'));
 		$this->task_name 	= $task_name;
 		$this->verbose 		= $verbose;
 		
@@ -224,7 +224,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 			
 			$proc_cmd = '';
 			if($file){
-				$proc_cmd .= 'mkdir '.$tmp_path.'; cp '.$file.' '.$tmp_path.';';
+				$proc_cmd .= "mkdir $tmp_path; cp $file $tmp_path;";
 			}
 			$proc_cmd .= $cmd;
 			
@@ -619,7 +619,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 		$this->time_start = time();
 	}
 	
-	private function nproc_max_limit(int $nproc){
+	private function nproc_max_limit(int $nproc): int{
 		return $this->nproc_max && $this->nproc_max < $nproc ? $this->nproc_max : $nproc;
 	}
 	

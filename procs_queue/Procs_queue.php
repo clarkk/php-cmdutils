@@ -54,13 +54,9 @@ abstract class Procs_queue extends \Utils\Verbose {
 	const VERBOSE_SSH_INDENTATION = "\t\t\t\t\t\t\t\t\t";
 	
 	public function __construct(string $task_name, int $verbose=0){
-		$this->nproc 		= (int)shell_exec('nproc');
+		$this->nproc 		= $this->nproc_max_limit((int)shell_exec('nproc'));
 		$this->task_name 	= $task_name;
 		$this->verbose 		= $verbose;
-		
-		if($this->nproc_max && $this->nproc_max < $this->nproc){
-			$this->nproc = $this->nproc_max;
-		}
 		
 		parent::__construct();
 		
@@ -78,7 +74,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 			$ssh = new Worker_init($user, $host);
 			$ssh->check_proc_path($proc_path);
 			$ssh->check_tmp_path($tmp_path);
-			$nproc = $ssh->get_nproc();
+			$nproc = $this->nproc_max_limit($ssh->get_nproc());
 			
 			if($this->verbose){
 				$this->verbose("Worker '$host' initiated\nnprocs: $nproc\nproc: $proc_path\ntmp: $tmp_path", self::COLOR_BLUE);
@@ -160,7 +156,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 						
 						$proc_slot = key($proc_slots['list']);
 						
-						$this->start_proc($proc_slot, $task['data'], $task['file']);
+						$this->start_proc($proc_slot, $task['data'], $task['file'] ?? '');
 						
 						if($proc_slots['list'][$proc_slot] == 1){
 							unset($proc_slots['list'][$proc_slot]);
@@ -226,8 +222,14 @@ abstract class Procs_queue extends \Utils\Verbose {
 			
 			$cmd = (new \Utils\Commands)->group_subprocs($this->task_php_command($this->localhost_proc_path, $tmp_path, $data, $file), $exitcode);
 			
+			$proc_cmd = '';
+			if($file){
+				$proc_cmd .= 'mkdir '.$tmp_path.'; cp '.$file.' '.$tmp_path.';';
+			}
+			$proc_cmd .= $cmd;
+			
 			$proc = new Cmd(true);
-			$proc->exec('mkdir '.$tmp_path.'; cp '.$file.' '.$tmp_path.'; '.$cmd);
+			$proc->exec($proc_cmd);
 			
 			$this->procs[] = [
 				'cmd'		=> $proc,
@@ -257,8 +259,10 @@ abstract class Procs_queue extends \Utils\Verbose {
 				Future improvement: mkdir and upload to worker is blocking the code. Should be a part of the ssh execution
 			*/
 			
-			$this->workers[$proc_slot]['ssh']->exec('mkdir '.$tmp_path);
-			$this->workers[$proc_slot]['ssh']->upload($file, $tmp_path.basename($file));
+			if($file){
+				$this->workers[$proc_slot]['ssh']->exec('mkdir '.$tmp_path);
+				$this->workers[$proc_slot]['ssh']->upload($file, $tmp_path.basename($file));
+			}
 			
 			$cmd = (new \Utils\Commands)->group_subprocs($this->task_php_command($this->workers[$proc_slot]['paths']['proc'], $tmp_path, $data, $file), $exitcode, true);
 			
@@ -613,6 +617,10 @@ abstract class Procs_queue extends \Utils\Verbose {
 		}
 		
 		$this->time_start = time();
+	}
+	
+	private function nproc_max_limit(int $nproc){
+		return $this->nproc_max && $this->nproc_max < $nproc ? $this->nproc_max : $nproc;
 	}
 	
 	public function __destruct(){

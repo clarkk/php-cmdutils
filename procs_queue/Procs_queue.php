@@ -1,5 +1,14 @@
 <?php
 
+/*
+	Add remote hosts to known_hosts with SSH key fingerprint
+	
+	# ssh worker.dynaccount.com
+	# ssh-keyscan api-scan.dynaccount.com >> ~/.ssh/known_hosts
+	# ssh-keyscan api-scan-bak.dynaccount.com >> ~/.ssh/known_hosts
+	# ssh-keyscan api-scan.dyntest.dk >> ~/.ssh/known_hosts
+*/
+
 namespace Utils\Procs_queue;
 
 if(!PHP_CLI){
@@ -46,6 +55,8 @@ abstract class Procs_queue extends \Utils\Verbose {
 	
 	private $redis;
 	private $redis_abort_list;
+	
+	const EXITCODE_ABORT 	= 255;
 	
 	const LOCALHOST 		= 'localhost';
 	
@@ -182,7 +193,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 			$this->ssh_connection_status();
 			
 			if($this->verbose){
-				$this->verbose('Sleep '.$this->loop_idle_sleep.' sec...', self::COLOR_GRAY);
+				$this->verbose('Sleep '.$this->loop_idle_sleep.' secs...', self::COLOR_GRAY);
 			}
 			
 			sleep($this->loop_idle_sleep);
@@ -218,18 +229,15 @@ abstract class Procs_queue extends \Utils\Verbose {
 	private function start_proc(string $proc_slot, array $data, string $file){
 		if($proc_slot == self::LOCALHOST){
 			$tmp_path = $this->task_tmp_path($this->localhost_tmp_path, $data);
-			$exitcode = $tmp_path.'exitcode';
+			$exitcode = $tmp_path.'/exitcode';
 			
-			$cmd = (new \Utils\Commands)->group_subprocs($this->task_php_command($this->localhost_proc_path, $tmp_path, $data, $file), $exitcode);
-			
-			$proc_cmd = '';
+			$cmd_copy_file = '';
 			if($file){
-				$proc_cmd .= "mkdir $tmp_path; cp $file $tmp_path;";
+				$cmd_copy_file = "mkdir $tmp_path; cp $file $tmp_path;";
 			}
-			$proc_cmd .= $cmd;
 			
 			$proc = new Cmd(true);
-			$proc->exec($proc_cmd);
+			$proc->exec(\Utils\Commands::group_subprocs($this->task_php_command($this->localhost_proc_path, $tmp_path, $data, $file), $cmd_copy_file, $exitcode));
 			
 			$this->procs[] = [
 				'cmd'		=> $proc,
@@ -253,23 +261,25 @@ abstract class Procs_queue extends \Utils\Verbose {
 		}
 		else{
 			$tmp_path = $this->task_tmp_path($this->workers[$proc_slot]['paths']['tmp'], $data);
-			$exitcode = $tmp_path.'exitcode';
+			$exitcode = $tmp_path.'/exitcode';
 			
-			/*
-				Future improvement: mkdir and upload to worker is blocking the code. Should be a part of the ssh execution
-			*/
-			
+			$cmd_copy_file = '';
 			if($file){
-				$this->workers[$proc_slot]['ssh']->exec('mkdir '.$tmp_path);
-				$this->workers[$proc_slot]['ssh']->upload($file, $tmp_path.basename($file));
+				$cmd_copy_file = "mkdir $tmp_path; scp root@".SUBHOST.'.'.HOST.":$file ".$tmp_path.'/'.basename($file).';';
 			}
 			
-			$cmd = (new \Utils\Commands)->group_subprocs($this->task_php_command($this->workers[$proc_slot]['paths']['proc'], $tmp_path, $data, $file), $exitcode, true);
-			
 			$ssh = $this->ssh_pool($proc_slot);
-			$ssh->exec($cmd);
+			$ssh->exec(\Utils\Commands::group_subprocs($this->task_php_command($this->workers[$proc_slot]['paths']['proc'], $tmp_path, $data, $file), $cmd_copy_file, $exitcode, true));
 			
-			$pid = $ssh->output(true, true);
+			if(!$pid = (int)$ssh->output(true, true)){
+				if($this->verbose){
+					$this->verbose('The task failed due to an error on the worker', self::COLOR_RED);
+				}
+				
+				$this->task_failed($data);
+				
+				return;
+			}
 			
 			$this->workers[$proc_slot]['procs'][] = [
 				'ssh'		=> $ssh,
@@ -296,14 +306,14 @@ abstract class Procs_queue extends \Utils\Verbose {
 	
 	private function read_proc_streams(){
 		if($this->verbose){
-			$this->verbose("\nLoop started\t\t\t\t\t".$this->get_remain_time().' sec', self::COLOR_GRAY);
+			$this->verbose("\nLoop started\t\t\t\t\t".$this->get_remain_time().' secs', self::COLOR_GRAY);
 		}
 		
 		foreach($this->procs as $p => $proc){
 			$this->read_proc_stream($proc['cmd'], $proc['id']);
 			
 			if(!$proc['cmd']->is_running()){
-				$exitcode 	= $this->parse_exitcode(trim(shell_exec('cat '.$proc['exitcode'].' 2>/dev/null')));
+				$exitcode 	= $this->parse_exitcode(trim(file_get_contents($proc['exitcode']) ?? ''));
 				$output 	= $proc['tmp_path'].'/'.self::OUTPUT_FILE;
 				
 				if($this->verbose){
@@ -436,7 +446,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 	}
 	
 	private function parse_exitcode(string $exitcode): int{
-		return !strlen($exitcode) ? 255 : (int)$exitcode;
+		return !strlen($exitcode) ? self::EXITCODE_ABORT : $exitcode;
 	}
 	
 	private function read_proc_stream($interface, string $proc_id, bool $is_worker=false){
@@ -468,7 +478,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 	
 	private function verbose_proc_complete(string $verbose, int $exitcode, bool $is_worker=false){
 		if($exitcode){
-			if($exitcode == 255){
+			if($exitcode == self::EXITCODE_ABORT){
 				$color 		= self::COLOR_YELLOW;
 				$verbose 	.= ' aborted';
 			}
@@ -570,12 +580,12 @@ abstract class Procs_queue extends \Utils\Verbose {
 	}
 	
 	private function task_tmp_path(string $base_path, array $task): string{
-		return $base_path.'/'.\Time\Time::file_timestamp().'_'.$this->task_name.'_'.$task['id'].'/';
+		return $base_path.'/'.\Time\Time::file_timestamp().'_'.$this->task_name.'_'.$task['id'];
 	}
 	
 	private function task_php_command(string $php_path, string $tmp_path, array $data, string $file): string{
 		if($this->verbose && $this->task_timeout){
-			$this->verbose('Task timeout: '.$this->task_timeout, self::COLOR_YELLOW);
+			$this->verbose('Task timeout: '.$this->task_timeout.' secs', self::COLOR_YELLOW);
 		}
 		
 		$process_data = [
@@ -590,7 +600,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 		}
 		$cmd .= 'php '.$php_path.' '.$this->task_name.' '.($this->verbose ? '-v='.$this->verbose : '').' -process='.base64_encode(serialize($process_data));
 		
-		return (new \Utils\Commands)->timeout_proc($cmd, $this->task_timeout);
+		return \Utils\Commands::timeout_proc($cmd, $this->task_timeout);
 	}
 	
 	private function is_procs_running(): bool{

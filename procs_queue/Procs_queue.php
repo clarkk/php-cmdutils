@@ -4,9 +4,10 @@
 	Add remote hosts to known_hosts with SSH key fingerprint
 	
 	# ssh worker.dynaccount.com
-	# ssh-keyscan api-scan.dynaccount.com >> ~/.ssh/known_hosts
-	# ssh-keyscan api-scan-bak.dynaccount.com >> ~/.ssh/known_hosts
-	# ssh-keyscan api-scan.dyntest.dk >> ~/.ssh/known_hosts
+	# add_ssh_known_hosts.sh
+		- api-scan.dynaccount.com
+		- api-scan-bak.dynaccount.com
+		- api-scan.dyntest.dk
 */
 
 namespace Utils\Procs_queue;

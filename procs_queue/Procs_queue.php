@@ -22,10 +22,12 @@ use \Utils\SSH\SSH_error;
 use \Utils\Procs_queue\Worker_init;
 
 abstract class Procs_queue extends \Utils\Verbose {
-	const SSH_KILL_TIMEOUT 	= true;
+	const SSH_KILL_TIMEOUT 			= true;
 	
-	const TIMEOUT 			= 999;
-	const SSH_TIMEOUT 		= 60;
+	const TIMEOUT 					= 999;
+	const SSH_TIMEOUT 				= 60;
+	
+	const DEFAULT_TASK_TIMEOUT 		= 180;
 	
 	/*
 	*	Highest priority:		-20
@@ -36,18 +38,21 @@ abstract class Procs_queue extends \Utils\Verbose {
 	*	Idle priority:			> 9
 	*	Lowest priority:		19	
 	*/
-	const TASK_PROC_NICE 		= 6;
+	const TASK_PROC_NICE 			= 6;
+	
+	private $loop_idle_sleep 		= 1;
 	
 	protected $task_name;
-	protected $task_timeout 	= 0;
+	private $task_timeout 			= self::DEFAULT_TASK_TIMEOUT;
 	
-	protected $loop_idle_sleep 	= 1;
+	private $task_fetch_idle_time 	= 1;
+	private $task_fetch_time_last	= 0;
 	
-	protected $nproc_max 		= 0;
 	private $nproc;
-	private $procs 				= [];
+	private $nproc_max 				= 0;
+	private $procs 					= [];
 	
-	private $workers 			= [];
+	private $workers 				= [];
 	
 	private $time_start;
 	
@@ -77,7 +82,25 @@ abstract class Procs_queue extends \Utils\Verbose {
 		}
 	}
 	
-	public function add_worker(string $user, string $host, string $proc_path, string $tmp_path){
+	public function loop_idle_sleep(int $sleep): self{
+		$this->loop_idle_sleep = $sleep;
+		
+		return $this;
+	}
+	
+	public function nproc_max(int $max): self{
+		$this->nproc_max = $max;
+		
+		return $this;
+	}
+	
+	public function timeout(int $timeout): self{
+		$this->task_timeout = $timeout;
+		
+		return $this;
+	}
+	
+	public function add_worker(string $user, string $host, string $proc_path, string $tmp_path): self{
 		try{
 			if($this->verbose){
 				$this->verbose("Add worker '$host'", self::COLOR_GRAY);
@@ -117,9 +140,11 @@ abstract class Procs_queue extends \Utils\Verbose {
 				$ssh->disconnect();
 			}
 		}
+		
+		return $this;
 	}
 	
-	public function start_redis(string $auth, string $abort_list){
+	public function start_redis(string $auth, string $abort_list): self{
 		try{
 			$this->redis = new \Redis;
 			if(!$this->redis->connect('127.0.0.1')){
@@ -141,6 +166,8 @@ abstract class Procs_queue extends \Utils\Verbose {
 			
 			throw new Error('Redis: '.$e->getMessage(), 0, $e);
 		}
+		
+		return $this;
 	}
 	
 	public function exec(string $localhost_proc_path, string $localhost_tmp_path){
@@ -160,38 +187,55 @@ abstract class Procs_queue extends \Utils\Verbose {
 			$proc_slots = $this->get_open_proc_slots();
 			
 			if($proc_slots['num']){
-				if($tasks = $this->task_fetch($proc_slots['num'])){
-					foreach($tasks as $task){
-						if(!$proc_slots['list']){
-							break;
-						}
-						
-						$proc_slot = key($proc_slots['list']);
-						
-						$this->start_proc($proc_slot, $task['data'], $task['file'] ?? '');
-						
-						if($proc_slots['list'][$proc_slot] == 1){
-							unset($proc_slots['list'][$proc_slot]);
-						}
-						else{
-							$proc_slots['list'][$proc_slot]--;
-						}
+				$task_fetch_idle_time = $this->get_idle_time_task_fetch();
+				if($task_fetch_idle_time < $this->task_fetch_idle_time){
+					if($this->verbose){
+						$this->verbose("Task fetch idle\t\t\t\t\t".$task_fetch_idle_time.' secs', self::COLOR_GRAY);
 					}
 				}
 				else{
-					if($this->verbose){
-						$this->verbose('... No pending tasks ...', self::COLOR_GRAY);
+					if($tasks = $this->task_fetch($proc_slots['num'])){
+						foreach($tasks as $task){
+							if(!$proc_slots['list']){
+								break;
+							}
+							
+							$proc_slot = key($proc_slots['list']);
+							
+							$this->start_proc($proc_slot, $task['data'], $task['file'] ?? '');
+							
+							if($proc_slots['list'][$proc_slot] == 1){
+								unset($proc_slots['list'][$proc_slot]);
+							}
+							else{
+								$proc_slots['list'][$proc_slot]--;
+							}
+						}
+					}
+					else{
+						if($this->verbose){
+							$this->verbose('... No pending tasks ...', self::COLOR_GRAY);
+						}
 					}
 				}
 			}
 			
+			$is_procs_running = $this->is_procs_running();
+			
 			if($this->verbose){
-				if(!$this->is_procs_running()){
+				if(!$is_procs_running){
 					$this->verbose('... No processing tasks ...', self::COLOR_GRAY);
 				}
 			}
 			
 			$this->ssh_connection_status();
+			
+			if($is_procs_running){
+				//	Sleep 0.1 sec
+				usleep(100000);
+				
+				continue;
+			}
 			
 			if($this->verbose){
 				$this->verbose('Sleep '.$this->loop_idle_sleep.' secs...', self::COLOR_GRAY);
@@ -201,10 +245,18 @@ abstract class Procs_queue extends \Utils\Verbose {
 		}
 	}
 	
+	protected function update_task_time_fetch(){
+		$this->task_fetch_time_last = microtime(true);
+	}
+	
 	abstract protected function task_fetch(int $num): array;
 	abstract protected function task_start(array $data, string $pid);
 	abstract protected function task_success(array $data, string $json);
 	abstract protected function task_failed(array $data);
+	
+	private function get_idle_time_task_fetch(): float{
+		return round(microtime(true) - $this->task_fetch_time_last, 2);
+	}
 	
 	private function kill_aborted_tasks(){
 		if($this->redis && $this->redis->lLen($this->redis_abort_list)){
@@ -229,16 +281,12 @@ abstract class Procs_queue extends \Utils\Verbose {
 	
 	private function start_proc(string $proc_slot, array $data, string $file){
 		if($proc_slot == self::LOCALHOST){
-			$tmp_path = $this->task_tmp_path($this->localhost_tmp_path, $data);
-			$exitcode = $tmp_path.'/exitcode';
-			
-			$cmd_copy_file = '';
-			if($file){
-				$cmd_copy_file = "mkdir $tmp_path; cp $file $tmp_path;";
-			}
+			$tmp_path 		= $this->task_tmp_path($this->localhost_tmp_path, $data);
+			$exitcode 		= $tmp_path.'/exitcode';
+			$cmd_tmp_path 	= "mkdir $tmp_path;".($file ? "cp $file $tmp_path;" : '');
 			
 			$proc = new Cmd(true);
-			$proc->exec(\Utils\Commands::group_subprocs($this->task_php_command($this->localhost_proc_path, $tmp_path, $data, $file), $cmd_copy_file, $exitcode));
+			$proc->exec(\Utils\Commands::group_subprocs($this->task_php_command($this->localhost_proc_path, $tmp_path, $data, $file), $cmd_tmp_path, $exitcode));
 			
 			$this->procs[] = [
 				'cmd'		=> $proc,
@@ -261,16 +309,12 @@ abstract class Procs_queue extends \Utils\Verbose {
 			}
 		}
 		else{
-			$tmp_path = $this->task_tmp_path($this->workers[$proc_slot]['paths']['tmp'], $data);
-			$exitcode = $tmp_path.'/exitcode';
-			
-			$cmd_copy_file = '';
-			if($file){
-				$cmd_copy_file = "mkdir $tmp_path; scp root@".SUBHOST.'.'.HOST.":$file ".$tmp_path.'/'.basename($file).';';
-			}
+			$tmp_path 		= $this->task_tmp_path($this->workers[$proc_slot]['paths']['tmp'], $data);
+			$exitcode 		= $tmp_path.'/exitcode';
+			$cmd_tmp_path 	= "mkdir $tmp_path;".($file ? "scp root@".SUBHOST.'.'.HOST.":$file ".$tmp_path.'/'.basename($file).';' : '');
 			
 			$ssh = $this->ssh_pool($proc_slot);
-			$ssh->exec(\Utils\Commands::group_subprocs($this->task_php_command($this->workers[$proc_slot]['paths']['proc'], $tmp_path, $data, $file), $cmd_copy_file, $exitcode, true));
+			$ssh->exec(\Utils\Commands::group_subprocs($this->task_php_command($this->workers[$proc_slot]['paths']['proc'], $tmp_path, $data, $file), $cmd_tmp_path, $exitcode, true));
 			
 			if(!$pid = (int)$ssh->output(true, true)){
 				if($this->verbose){
@@ -592,7 +636,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 		$process_data = [
 			'data'	=> $data,
 			'tmp'	=> $tmp_path,
-			'file'	=> basename($file)
+			'file'	=> $file ? basename($file) : ''
 		];
 		
 		$cmd = '';
@@ -618,8 +662,8 @@ abstract class Procs_queue extends \Utils\Verbose {
 		return false;
 	}
 	
-	private function get_remain_time(): int{
-		return time() - $this->time_start - self::TIMEOUT;
+	private function get_remain_time(): float{
+		return round(microtime(true) - $this->time_start - self::TIMEOUT, 2);
 	}
 	
 	private function start_time(){

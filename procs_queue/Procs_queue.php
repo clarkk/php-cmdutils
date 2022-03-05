@@ -82,6 +82,12 @@ abstract class Procs_queue extends \Utils\Verbose {
 		}
 	}
 	
+	public function task_fetch_idle(int $time): self{
+		$this->task_fetch_idle_time = $time;
+		
+		return $this;
+	}
+	
 	public function loop_idle_sleep(int $sleep): self{
 		$this->loop_idle_sleep = $sleep;
 		

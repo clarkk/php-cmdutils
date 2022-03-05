@@ -190,7 +190,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 				$task_fetch_idle_time = $this->get_task_fetch_time_idle();
 				if($task_fetch_idle_time < $this->task_fetch_idle_time){
 					if($this->verbose){
-						$this->verbose("Task fetch idle\t\t\t\t\t".$task_fetch_idle_time.' secs', self::COLOR_GRAY);
+						$this->verbose("Task fetch idle\t\t\t\t\t\t".$task_fetch_idle_time.' secs', self::COLOR_GRAY);
 					}
 				}
 				else{
@@ -214,7 +214,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 					}
 					else{
 						if($this->verbose){
-							$this->verbose('... No pending tasks ...', self::COLOR_GRAY);
+							$this->verbose("\nNo pending tasks", self::COLOR_GRAY);
 						}
 					}
 				}
@@ -224,7 +224,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 			
 			if($this->verbose){
 				if(!$is_procs_running){
-					$this->verbose('... No processing tasks ...', self::COLOR_GRAY);
+					$this->verbose("\nNo processing tasks", self::COLOR_GRAY);
 				}
 			}
 			
@@ -351,7 +351,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 	
 	private function read_proc_streams(){
 		if($this->verbose){
-			$this->verbose("\nLoop started\t\t\t\t\t".$this->get_remain_time().' secs', self::COLOR_GRAY);
+			$this->verbose("\nLoop started\t\t\t\t\t\t".$this->get_remain_time().' secs', self::COLOR_GRAY);
 		}
 		
 		foreach($this->procs as $p => $proc){

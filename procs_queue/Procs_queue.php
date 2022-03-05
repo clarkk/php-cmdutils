@@ -187,7 +187,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 			$proc_slots = $this->get_open_proc_slots();
 			
 			if($proc_slots['num']){
-				$task_fetch_idle_time = $this->get_idle_time_task_fetch();
+				$task_fetch_idle_time = $this->get_task_fetch_time_idle();
 				if($task_fetch_idle_time < $this->task_fetch_idle_time){
 					if($this->verbose){
 						$this->verbose("Task fetch idle\t\t\t\t\t".$task_fetch_idle_time.' secs', self::COLOR_GRAY);
@@ -245,7 +245,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 		}
 	}
 	
-	protected function update_task_time_fetch(){
+	protected function update_task_fetch_time(){
 		$this->task_fetch_time_last = microtime(true);
 	}
 	
@@ -254,7 +254,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 	abstract protected function task_success(array $data, string $json);
 	abstract protected function task_failed(array $data);
 	
-	private function get_idle_time_task_fetch(): float{
+	private function get_task_fetch_time_idle(): float{
 		return round(microtime(true) - $this->task_fetch_time_last, 2);
 	}
 	

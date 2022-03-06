@@ -48,10 +48,11 @@ abstract class Procs_queue extends \Utils\Verbose {
 	private $task_fetch_idle_time 	= 1;
 	private $task_fetch_time_last	= 0;
 	
+	private $tasks 					= [];
+	
 	private $nproc;
 	private $nproc_max 				= 0;
 	private $procs 					= [];
-	
 	private $workers 				= [];
 	
 	private $time_start;
@@ -188,43 +189,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 			
 			$this->kill_aborted_tasks();
 			
-			$this->read_proc_streams();
-			
-			$proc_slots = $this->get_open_proc_slots();
-			
-			if($proc_slots['num']){
-				$task_fetch_idle_time = $this->get_task_fetch_time_idle();
-				if($task_fetch_idle_time < $this->task_fetch_idle_time){
-					if($this->verbose){
-						$this->verbose("Task fetch idle\t\t\t\t\t\t".$task_fetch_idle_time.' secs', self::COLOR_GRAY);
-					}
-				}
-				else{
-					if($tasks = $this->task_fetch($proc_slots['num'])){
-						foreach($tasks as $task){
-							if(!$proc_slots['list']){
-								break;
-							}
-							
-							$proc_slot = key($proc_slots['list']);
-							
-							$this->start_proc($proc_slot, $task['data'], $task['file'] ?? '');
-							
-							if($proc_slots['list'][$proc_slot] == 1){
-								unset($proc_slots['list'][$proc_slot]);
-							}
-							else{
-								$proc_slots['list'][$proc_slot]--;
-							}
-						}
-					}
-					else{
-						if($this->verbose){
-							$this->verbose("\nNo pending tasks", self::COLOR_GRAY);
-						}
-					}
-				}
-			}
+			$this->process_tasks();
 			
 			$is_procs_running = $this->is_procs_running();
 			
@@ -236,7 +201,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 			
 			$this->ssh_connection_status();
 			
-			if($is_procs_running){
+			if($is_procs_running || $this->tasks){
 				//	Sleep 0.1 sec
 				usleep(100000);
 				
@@ -259,6 +224,50 @@ abstract class Procs_queue extends \Utils\Verbose {
 	abstract protected function task_start(array $data, string $pid);
 	abstract protected function task_success(array $data, string $json);
 	abstract protected function task_failed(array $data);
+	
+	private function process_tasks(){
+		$this->read_proc_streams();
+		
+		$proc_slots = $this->get_open_proc_slots();
+		
+		if($proc_slots['num']){
+			$task_fetch_idle_time = $this->get_task_fetch_time_idle();
+			if($task_fetch_idle_time < $this->task_fetch_idle_time){
+				if($this->verbose){
+					$this->verbose("Task fetch idle\t\t\t\t\t\t".$task_fetch_idle_time.' secs', self::COLOR_GRAY);
+				}
+			}
+			else{
+				if($this->tasks = $this->tasks ?: $this->task_fetch($proc_slots['num'])){
+					foreach($this->tasks as $t => $task){
+						//	No more free proc slots
+						if(!$proc_slots['list']){
+							break;
+						}
+						
+						$proc_slot = key($proc_slots['list']);
+						
+						$this->start_proc($proc_slot, $task['data'], $task['file'] ?? '');
+						unset($this->tasks[$t]);
+						
+						if($proc_slots['list'][$proc_slot] == 1){
+							unset($proc_slots['list'][$proc_slot]);
+						}
+						else{
+							$proc_slots['list'][$proc_slot]--;
+						}
+					}
+				}
+				else{
+					if($this->verbose){
+						$this->verbose("\nNo pending tasks", self::COLOR_GRAY);
+					}
+				}
+			}
+		}
+		
+		return [];
+	}
 	
 	private function get_task_fetch_time_idle(): float{
 		return round(microtime(true) - $this->task_fetch_time_last, 2);

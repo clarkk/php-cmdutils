@@ -267,8 +267,6 @@ abstract class Procs_queue extends \Utils\Verbose {
 				}
 			}
 		}
-		
-		return [];
 	}
 	
 	private function get_task_fetch_time_idle(): float{

@@ -287,10 +287,9 @@ abstract class Procs_queue extends \Utils\Verbose {
 	
 	private function start_proc(string $proc_slot, array $data, string $file){
 		if($proc_slot == self::LOCALHOST){
-			$tmp_path 			= $this->task_tmp_path($this->localhost_tmp_path, $data);
-			$exitcode 			= $tmp_path.'/exitcode';
-			$cmd_tmp_path 		= "mkdir $tmp_path;".($file ? "cp $file $tmp_path;" : '');
-			$data['tmp_path']	= $tmp_path;
+			$tmp_path 		= $this->task_tmp_path($this->localhost_tmp_path, $data);
+			$exitcode 		= $tmp_path.'/exitcode';
+			$cmd_tmp_path 	= "mkdir $tmp_path;".($file ? "cp $file $tmp_path;" : '');
 			
 			$proc = new Cmd(true);
 			$proc->exec(\Utils\Commands::group_subprocs($this->task_php_command($this->localhost_proc_path, $tmp_path, $data, $file), $cmd_tmp_path, $exitcode));
@@ -316,10 +315,9 @@ abstract class Procs_queue extends \Utils\Verbose {
 			}
 		}
 		else{
-			$tmp_path 			= $this->task_tmp_path($this->workers[$proc_slot]['paths']['tmp'], $data);
-			$exitcode 			= $tmp_path.'/exitcode';
-			$cmd_tmp_path 		= "mkdir $tmp_path;".($file ? "scp root@".SUBHOST.'.'.HOST.":$file ".$tmp_path.'/'.basename($file).';' : '');
-			$data['tmp_path']	= $tmp_path;
+			$tmp_path 		= $this->task_tmp_path($this->workers[$proc_slot]['paths']['tmp'], $data);
+			$exitcode 		= $tmp_path.'/exitcode';
+			$cmd_tmp_path 	= "mkdir $tmp_path;".($file ? "scp root@".SUBHOST.'.'.HOST.":$file ".$tmp_path.'/'.basename($file).';' : '');
 			
 			$ssh = $this->ssh_pool($proc_slot);
 			$ssh->exec(\Utils\Commands::group_subprocs($this->task_php_command($this->workers[$proc_slot]['paths']['proc'], $tmp_path, $data, $file), $cmd_tmp_path, $exitcode, true));

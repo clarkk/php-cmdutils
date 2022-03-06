@@ -236,7 +236,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 			
 			if($is_task_idle && !$this->tasks){
 				if($this->verbose){
-					$this->verbose("Task fetch idle\t\t\t\t\t\t".$task_fetch_idle_time.' secs', self::COLOR_YELLOW);
+					$this->verbose("Task fetch idle\t\t\t\t\t\t".$task_fetch_idle_time.' secs', self::COLOR_GRAY);
 				}
 			}
 			else{

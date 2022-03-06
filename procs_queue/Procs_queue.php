@@ -230,48 +230,50 @@ abstract class Procs_queue extends \Utils\Verbose {
 		
 		$proc_slots = $this->get_open_proc_slots();
 		
-		if($proc_slots['num']){
-			$task_fetch_idle_time 	= $this->get_task_fetch_time_idle();
-			$is_task_idle 			= $task_fetch_idle_time < $this->task_fetch_idle_time;
-			
-			if($is_task_idle && !$this->tasks){
+		if(!$proc_slots['num']){
+			return;
+		}
+		
+		$task_fetch_idle_time 	= $this->get_task_fetch_time_idle();
+		$is_task_idle 			= $task_fetch_idle_time < $this->task_fetch_idle_time;
+		
+		if($is_task_idle && !$this->tasks){
+			if($this->verbose){
+				$this->verbose("Task fetch idle\t\t\t\t\t\t".$task_fetch_idle_time.' secs', self::COLOR_GRAY);
+			}
+		}
+		else{
+			if(!$is_task_idle){
 				if($this->verbose){
-					$this->verbose("Task fetch idle\t\t\t\t\t\t".$task_fetch_idle_time.' secs', self::COLOR_GRAY);
+					$this->verbose('Task fetch', self::COLOR_YELLOW);
+				}
+				
+				$this->tasks = $this->task_fetch($proc_slots['num']);
+			}
+			
+			if($this->tasks){
+				foreach($this->tasks as $t => $task){
+					//	No more free proc slots
+					if(!$proc_slots['list']){
+						break;
+					}
+					
+					$proc_slot = key($proc_slots['list']);
+					
+					$this->start_proc($proc_slot, $task['data'], $task['file'] ?? '');
+					unset($this->tasks[$t]);
+					
+					if($proc_slots['list'][$proc_slot] == 1){
+						unset($proc_slots['list'][$proc_slot]);
+					}
+					else{
+						$proc_slots['list'][$proc_slot]--;
+					}
 				}
 			}
 			else{
-				if(!$is_task_idle){
-					if($this->verbose){
-						$this->verbose('Task fetch', self::COLOR_YELLOW);
-					}
-					
-					$this->tasks = $this->task_fetch($proc_slots['num']);
-				}
-				
-				if($this->tasks){
-					foreach($this->tasks as $t => $task){
-						//	No more free proc slots
-						if(!$proc_slots['list']){
-							break;
-						}
-						
-						$proc_slot = key($proc_slots['list']);
-						
-						$this->start_proc($proc_slot, $task['data'], $task['file'] ?? '');
-						unset($this->tasks[$t]);
-						
-						if($proc_slots['list'][$proc_slot] == 1){
-							unset($proc_slots['list'][$proc_slot]);
-						}
-						else{
-							$proc_slots['list'][$proc_slot]--;
-						}
-					}
-				}
-				else{
-					if($this->verbose){
-						$this->verbose("\nNo pending tasks", self::COLOR_GRAY);
-					}
+				if($this->verbose){
+					$this->verbose("\nNo pending tasks", self::COLOR_GRAY);
 				}
 			}
 		}

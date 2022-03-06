@@ -27,7 +27,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 	const TIMEOUT 					= 999;
 	const SSH_TIMEOUT 				= 60;
 	
-	const DEFAULT_TASK_TIMEOUT 		= 180;
+	const DEFAULT_TASK_TIMEOUT 		= 60 * 2;
 	
 	/*
 	*	Highest priority:		-20
@@ -88,6 +88,12 @@ abstract class Procs_queue extends \Utils\Verbose {
 		return $this;
 	}
 	
+	public function task_timeout(int $timeout): self{
+		$this->task_timeout = $timeout;
+		
+		return $this;
+	}
+	
 	public function loop_idle_sleep(int $sleep): self{
 		$this->loop_idle_sleep = $sleep;
 		
@@ -96,12 +102,6 @@ abstract class Procs_queue extends \Utils\Verbose {
 	
 	public function nproc_max(int $max): self{
 		$this->nproc_max = $max;
-		
-		return $this;
-	}
-	
-	public function timeout(int $timeout): self{
-		$this->task_timeout = $timeout;
 		
 		return $this;
 	}
@@ -287,9 +287,10 @@ abstract class Procs_queue extends \Utils\Verbose {
 	
 	private function start_proc(string $proc_slot, array $data, string $file){
 		if($proc_slot == self::LOCALHOST){
-			$tmp_path 		= $this->task_tmp_path($this->localhost_tmp_path, $data);
-			$exitcode 		= $tmp_path.'/exitcode';
-			$cmd_tmp_path 	= "mkdir $tmp_path;".($file ? "cp $file $tmp_path;" : '');
+			$tmp_path 			= $this->task_tmp_path($this->localhost_tmp_path, $data);
+			$exitcode 			= $tmp_path.'/exitcode';
+			$cmd_tmp_path 		= "mkdir $tmp_path;".($file ? "cp $file $tmp_path;" : '');
+			$data['tmp_path']	= $tmp_path;
 			
 			$proc = new Cmd(true);
 			$proc->exec(\Utils\Commands::group_subprocs($this->task_php_command($this->localhost_proc_path, $tmp_path, $data, $file), $cmd_tmp_path, $exitcode));
@@ -315,9 +316,10 @@ abstract class Procs_queue extends \Utils\Verbose {
 			}
 		}
 		else{
-			$tmp_path 		= $this->task_tmp_path($this->workers[$proc_slot]['paths']['tmp'], $data);
-			$exitcode 		= $tmp_path.'/exitcode';
-			$cmd_tmp_path 	= "mkdir $tmp_path;".($file ? "scp root@".SUBHOST.'.'.HOST.":$file ".$tmp_path.'/'.basename($file).';' : '');
+			$tmp_path 			= $this->task_tmp_path($this->workers[$proc_slot]['paths']['tmp'], $data);
+			$exitcode 			= $tmp_path.'/exitcode';
+			$cmd_tmp_path 		= "mkdir $tmp_path;".($file ? "scp root@".SUBHOST.'.'.HOST.":$file ".$tmp_path.'/'.basename($file).';' : '');
+			$data['tmp_path']	= $tmp_path;
 			
 			$ssh = $this->ssh_pool($proc_slot);
 			$ssh->exec(\Utils\Commands::group_subprocs($this->task_php_command($this->workers[$proc_slot]['paths']['proc'], $tmp_path, $data, $file), $cmd_tmp_path, $exitcode, true));

@@ -236,11 +236,19 @@ abstract class Procs_queue extends \Utils\Verbose {
 			
 			if($is_task_idle && !$this->tasks){
 				if($this->verbose){
-					$this->verbose("Task fetch idle\t\t\t\t\t\t".$task_fetch_idle_time.' secs', self::COLOR_GRAY);
+					$this->verbose("Task fetch idle\t\t\t\t\t\t".$task_fetch_idle_time.' secs', self::COLOR_YELLOW);
 				}
 			}
 			else{
-				if($this->tasks = $this->tasks ?: $this->task_fetch($proc_slots['num'])){
+				if(!$is_task_idle){
+					if($this->verbose){
+						$this->verbose('Task fetch', self::COLOR_YELLOW);
+					}
+					
+					$this->tasks = $this->task_fetch($proc_slots['num']);
+				}
+				
+				if($this->tasks){
 					foreach($this->tasks as $t => $task){
 						//	No more free proc slots
 						if(!$proc_slots['list']){

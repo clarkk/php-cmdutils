@@ -38,7 +38,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 	*	Idle priority:			> 9
 	*	Lowest priority:		19	
 	*/
-	const TASK_PROC_NICE 			= 6;
+	const TASK_PROC_NICE 			= 8;
 	
 	private $loop_idle_sleep 		= 1;
 	

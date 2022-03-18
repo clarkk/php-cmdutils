@@ -258,7 +258,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 						break;
 					}
 					
-					$proc_slot = key($proc_slots['list']);
+					$proc_slot = array_key_first($proc_slots['list']);
 					
 					$this->start_proc($proc_slot, $task['data'], $task['file'] ?? '');
 					unset($this->tasks[$t]);

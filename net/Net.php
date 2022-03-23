@@ -40,12 +40,16 @@ class Net extends Net_error_codes {
 		}
 	}
 	
-	public function keep_alive(){
+	public function keep_alive(): self{
 		$this->keep_alive = true;
+		
+		return $this;
 	}
 	
-	public function decode_type(){
+	public function decode_type(): self{
 		$this->decode_type = true;
+		
+		return $this;
 	}
 	
 	public function close(){
@@ -131,7 +135,11 @@ class Net extends Net_error_codes {
 		switch($type){
 			case self::CONTENT_TYPE_JSON:
 				try{
+					echo "before:\n";
+					print_r($response);
 					$response = json_decode($response, true, 512, JSON_THROW_ON_ERROR);
+					echo "after:\n";
+					print_r($response);
 				}
 				catch(\Exception $e){
 					throw new Error('JSON decode error', self::ERR_RESPONSE);

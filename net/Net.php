@@ -76,6 +76,7 @@ class Net extends Net_error_codes {
 			CURLOPT_URL 			=> $url,
 			CURLOPT_RETURNTRANSFER 	=> true,
 			CURLOPT_ENCODING 		=> '',
+			CURLOPT_FOLLOWLOCATION 	=> true,
 			CURLOPT_HTTP_VERSION 	=> strpos($url, 'https://') === 0 ? CURL_HTTP_VERSION_2_0 : CURL_HTTP_VERSION_1_1
 		]);
 		

@@ -109,7 +109,7 @@ class Cronjob extends Argv {
 		
 		require_once $this->cronjob_file;
 		
-		$class_name = '\\Utils\\Cronjob\\'.ucfirst($this->task_name);
+		$class_name = '\Utils\Cronjob\\'.ucfirst($this->task_name);
 		if(!class_exists($class_name)){
 			throw new Error('Cronjob class missing: '.$class_name);
 		}

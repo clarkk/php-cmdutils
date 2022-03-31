@@ -123,7 +123,7 @@ class Net extends Net_error_codes {
 		
 		return '--'.$this->boundary.self::CRLF
 			.self::CONTENT_DISPOSITION.': form-data; name="'.$key.'"'.($file_name ? '; filename="'.$file_name.'"' : '').self::CRLF
-			.($content_type ? self::CONTENT_TYPE.': '.$content_type : '')
+			.($content_type ? self::CONTENT_TYPE.': '.$content_type.self::CRLF : '')
 			.self::CONTENT_LENGTH.': '.strlen($value).self::CRLF.self::CRLF
 			.$value.self::CRLF;
 	}

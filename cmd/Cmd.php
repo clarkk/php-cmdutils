@@ -26,15 +26,18 @@ class Cmd extends Proc {
 	}
 	
 	public function output(bool $trim=false, bool $stream_wait=false): string{
+		//	Blocking call: Return stdout
+		if(!$this->is_stream){
+			return $trim ? trim($this->output) : $this->output;
+		}
+		
+		//	Non-blocking call: Wait until stdout returned data
 		if($stream_wait){
 			while(true){
 				if($output = stream_get_contents($this->pipes[self::PIPE_STDOUT])){
 					return $trim ? trim($output) : $output;
 				}
 			}
-		}
-		else{
-			return $trim ? trim($this->output) : $this->output;
 		}
 	}
 	
@@ -65,12 +68,11 @@ class Cmd extends Proc {
 		if($status['running']){
 			return true;
 		}
-		else{
-			$this->termsig 	= $status['termsig'] == self::SIGKILL || $status['termsig'] == self::SIGTERM;
-			$this->exitcode = $status['termsig'];
-			
-			return false;
-		}
+		
+		$this->termsig 	= $status['termsig'] == self::SIGKILL || $status['termsig'] == self::SIGTERM;
+		$this->exitcode = $status['termsig'];
+		
+		return false;
 	}
 	
 	public function get_pipe_stream(int $pipe=self::PIPE_STDOUT): string{
@@ -88,20 +90,20 @@ class Cmd extends Proc {
 			fclose($this->pipes[self::PIPE_STDIN]);
 		}
 		
-		if($this->is_stream){
-			stream_set_read_buffer($this->pipes[self::PIPE_STDOUT], 0);
-			stream_set_read_buffer($this->pipes[self::PIPE_STDERR], 0);
-			
-			stream_set_blocking($this->pipes[self::PIPE_STDOUT], false);
-			stream_set_blocking($this->pipes[self::PIPE_STDERR], false);
-		}
-		else{
+		//	Blocking call: Return stderr
+		if(!$this->is_stream){
 			$this->output 	= stream_get_contents($this->pipes[self::PIPE_STDOUT]);
 			$stderr 		= stream_get_contents($this->pipes[self::PIPE_STDERR]);
 			$this->close();
 			
 			return $trim ? trim($stderr) : $stderr;
 		}
+		
+		stream_set_read_buffer($this->pipes[self::PIPE_STDOUT], 0);
+		stream_set_read_buffer($this->pipes[self::PIPE_STDERR], 0);
+		
+		stream_set_blocking($this->pipes[self::PIPE_STDOUT], false);
+		stream_set_blocking($this->pipes[self::PIPE_STDERR], false);
 	}
 	
 	public function close(){

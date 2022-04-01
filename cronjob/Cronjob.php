@@ -15,6 +15,41 @@ class Cronjob extends Argv {
 	const DB_RETRY_TIMEOUT 	= 60;
 	const DB_RETRY_SLEEP 	= 5;
 	
+	static public function task_status(string $task_name, bool $quick=false): array{
+		$procs = [];
+		
+		$output = trim(shell_exec('ps --noheader -o pid,ppid,cmd -C php | grep "cronjob\.php '.$task_name.'\b"'));
+		
+		foreach(array_filter(explode("\n", $output)) as $proc){
+			$pid 	= (int)$proc;
+			$ppid 	= (int)substr($proc, strpos($proc, ' '));
+			
+			$cmd = [
+				'pid'	=> $pid,
+				'ppid'	=> $ppid,
+				'cmd'	=> substr($proc, strpos($proc, 'cronjob.php'))
+			];
+			
+			if($quick){
+				$procs[] = $cmd;
+			}
+			else{
+				$cmd += [
+					'pcmd' => trim(shell_exec('ps --noheader -p '.$ppid.' -o cmd'))
+				] + (new \Utils\Cmd\Proc)->stat($pid);
+				
+				if(strpos($proc, ' -process=')){
+					$procs[] = $cmd;
+				}
+				else{
+					array_unshift($procs, $cmd);
+				}
+			}
+		}
+		
+		return $procs;
+	}
+	
 	public function init(string $base_path, bool $use_db=true){
 		if(!$this->task_name){
 			throw new Error('Cronjob task not given');

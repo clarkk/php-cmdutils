@@ -1,10 +1,10 @@
 # php-utils
 A powerful bundle of basic system (Linux) utility tools for your PHP web-application
 
-# \Utils\Cmd\Cmd
+## \Utils\Cmd\Cmd
 Executes a command line (like "shell_exec" or "exec"), but in a more sophisticated way with **proc_\*** and **stream_\*** functions with more flexibility and feature-rich.
 
-**Blocking system I/O call**
+### Blocking system I/O call
 ```
 $Cmd = new \Utils\Cmd\Cmd;
 if($stderr = $Cmd->exec('cat filename')){
@@ -13,7 +13,7 @@ if($stderr = $Cmd->exec('cat filename')){
 $stdout = $Cmd->output();
 ```
 
-**Non-blocking system I/O call**
+### Non-blocking system I/O call
 ```
 $Cmd = new \Utils\Cmd\Cmd(true);
 $Cmd->exec('a heavy command that takes more time');
@@ -47,10 +47,10 @@ while(true){
 }
 ```
 
-# \Utils\Net\Net
+## \Utils\Net\Net
 Calls an URL with **curl_\*** functions.
 
-**Single URL request**
+### Single URL request
 ```
 $Net = (new \Utils\Net\Net())
   ->decode_type();  // Decode response content type like JSON to array
@@ -59,7 +59,7 @@ $Net = (new \Utils\Net\Net())
 $response = $Net->request('https://the-url');
 ```
 
-**Keep-Alive connection**
+### Keep-Alive connection
 ```
 $Net = (new \Utils\Net\Net())
   ->decode_type()  // Decode response content type like JSON to array
@@ -78,7 +78,7 @@ $response = $Net->request('https://the-third-url', json_encode($arr));
 $Net->close();
 ```
 
-**Multipart request (file upload etc.)**
+### Multipart request (file upload etc.)
 ```
 $Net = (new \Utils\Net\Net())
   ->decode_type();  // Decode response content type like JSON to array
@@ -94,12 +94,12 @@ $post = $file_upload.$post_variable.$Net->multipart_end();
 $response = $Net->request('https://the-url', $post, $custom_headers, $custom_curl_opt, true);
 ```
 
-# \Utils\SSH\SSH
+## \Utils\SSH\SSH
 Executes remote command line via SSH2 with **ssh2_\*** and **stream_\*** functions.
 
 Note: Remember to set the constants **RSA_PRIVATE** and **RSA_PUBLIC** with the correct paths to your RSA private and public key pair.
 
-**SSH blocking system I/O call**
+### SSH blocking system I/O call
 ```
 $SSH = new \Utils\SSH\SSH('root', 'host');
 if($stderr = $SSH->exec('cat filename')){
@@ -109,7 +109,7 @@ $stdout = $SSH->output();
 $SSH->disconnect();
 ```
 
-**SSH non-blocking system I/O call**
+### SSH non-blocking system I/O call
 ```
 $SSH = new \Utils\SSH\SSH('root', 'host', true);
 $SSH->exec('a heavy command that takes more time');
@@ -128,7 +128,7 @@ while(true){
 $SSH->disconnect();
 ```
 
-**SSH upload file**
+### SSH upload file
 ```
 $SSH = new \Utils\SSH\SSH('root', 'host');
 $SSH->upload('/local/path/to/file', '/remote/path/to/file');

@@ -95,7 +95,7 @@ $response = $Net->request('https://the-url', $post, $custom_headers, $custom_cur
 ```
 
 # \Utils\SSH\SSH
-Executes command line via SSH with **ssh2_\*** and **stream_\*** functions.
+Executes command line via SSH2 with **ssh2_\*** and **stream_\*** functions.
 
 Note: Remember to set the constants **RSA_PRIVATE** and **RSA_PUBLIC** with the correct paths to your RSA private and public key pair.
 
@@ -125,5 +125,12 @@ while(true){
   sleep(5);
 }
 
+$SSH->disconnect();
+```
+
+**SSH upload file**
+```
+$SSH = new \Utils\SSH\SSH('root', 'host');
+$SSH->upload('/local/path/to/file', '/remote/path/to/file');
 $SSH->disconnect();
 ```

@@ -19,15 +19,15 @@ class SSH implements \Utils\Net\Error_codes {
 	public function __construct(string $user, string $host, bool $is_stream=false){
 		$this->is_stream = $is_stream;
 		if(!is_readable(self::RSA_PRIVATE) || !is_readable(self::RSA_PUBLIC)){
-			throw new SSH_error('RSA keys not found', self::ERR_INIT);
+			throw new Error('RSA keys not found', self::ERR_INIT);
 		}
 		
 		if(!$this->session = ssh2_connect($host)){
-			throw new SSH_error("Could not connect to '$host'", self::ERR_NETWORK);
+			throw new Error("Could not connect to '$host'", self::ERR_NETWORK);
 		}
 		
 		if(!ssh2_auth_pubkey_file($this->session, $user, self::RSA_PUBLIC, self::RSA_PRIVATE)){
-			throw new SSH_error("Could not authenticate to '$host'", self::ERR_AUTH);
+			throw new Error("Could not authenticate to '$host'", self::ERR_AUTH);
 		}
 		
 		$this->time_last_exec = time();
@@ -79,4 +79,4 @@ class SSH implements \Utils\Net\Error_codes {
 	}
 }
 
-class SSH_error extends \Error {}
+class Error extends \Error {}

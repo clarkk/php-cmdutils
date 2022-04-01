@@ -18,7 +18,6 @@ if(!PHP_CLI){
 
 use \Utils\Cmd\Cmd;
 use \Utils\SSH\SSH;
-use \Utils\SSH\Error;
 use \Utils\Procs_queue\Worker_init;
 
 abstract class Procs_queue extends \Utils\Verbose {
@@ -134,7 +133,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 				'ssh_pool'	=> []
 			];
 		}
-		catch(Error $e){
+		catch(\Utils\SSH\Error $e){
 			$error = $e->getMessage();
 			
 			if($this->verbose){

@@ -47,12 +47,12 @@ while(true){
 }
 ```
 
-# \Utils\Cmd\Net
+# \Utils\Net\Net
 Calls an URL with **curl_\*** functions.
 
 **Single URL request**
 ```
-$Net = new \Utils\Net\Net()
+$Net = (new \Utils\Net\Net())
   ->decode_type();  // Decode response content type like JSON to array
 
 //  GET request (connection is automatically closed when keep-alive is not enabled)
@@ -61,7 +61,7 @@ $response = $Net->request('https://the-url');
 
 **Keep-Alive connection**
 ```
-$Net = new \Utils\Net\Net()
+$Net = (new \Utils\Net\Net())
   ->decode_type()  // Decode response content type like JSON to array
   ->keep_alive();  // Enable keep-alive connections
 
@@ -72,7 +72,7 @@ $response = $Net->request('https://the-first-url?query=test');
 $response = $Net->request('https://the-second-url', 'var1='.urlencode('value of first var').'&var2='.urlencode('value of second var'));
 
 //  POST request with JSON
-$response = $Net->request('https://the-second-url', json_encode($arr));
+$response = $Net->request('https://the-third-url', json_encode($arr));
 
 //  Closes connection after use
 $Net->close();
@@ -80,7 +80,7 @@ $Net->close();
 
 **Multipart request (file upload etc.)**
 ```
-$Net = new \Utils\Net\Net()
+$Net = (new \Utils\Net\Net())
   ->decode_type();  // Decode response content type like JSON to array
 
 $file_upload      = $Net->multipart_value('post_name_of_file', file_get_contents('/path/to/file/The-file-name.txt'), 'The-file-name.txt');
@@ -95,7 +95,7 @@ $response = $Net->request('https://the-url', $post, $custom_headers, $custom_cur
 ```
 
 # \Utils\SSH\SSH
-Executes command line via SSH2 with **ssh2_\*** and **stream_\*** functions.
+Executes remote command line via SSH2 with **ssh2_\*** and **stream_\*** functions.
 
 Note: Remember to set the constants **RSA_PRIVATE** and **RSA_PUBLIC** with the correct paths to your RSA private and public key pair.
 

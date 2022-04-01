@@ -97,7 +97,7 @@ $response = $Net->request('https://the-url', $post, $custom_headers, $custom_cur
 # \Utils\SSH\SSH
 Executes command line via SSH with **ssh2_\*** and **stream_\*** functions.
 
-Note: Remember to set the constants RSA_PRIVATE and RSA_PUBLIC with the correct paths to your RSA private and public key pair.
+Note: Remember to set the constants **RSA_PRIVATE** and **RSA_PUBLIC** with the correct paths to your RSA private and public key pair.
 
 **SSH blocking system I/O call**
 ```
@@ -110,3 +110,20 @@ $SSH->disconnect();
 ```
 
 **SSH non-blocking system I/O call**
+```
+$SSH = new \Utils\SSH\SSH('root', 'host', true);
+$SSH->exec('a heavy command that takes more time');
+
+while(true){
+  //  Check once in a while how the process has progressed
+  
+  $stdout = $Cmd->get_pipe_stream(\Utils\SSH\SSH::PIPE_STDOUT);
+  $stderr = $Cmd->get_pipe_stream(\Utils\SSH\SSH::PIPE_STDERR);
+  
+  
+  
+  sleep(5);
+}
+
+$SSH->disconnect();
+```

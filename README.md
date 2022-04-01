@@ -1,8 +1,8 @@
 # php-utils
-A bundle of usefull system utility tools for Linux
+A powerful bundle of basic system (Linux) utility tools for your PHP web-application
 
 # \Utils\Cmd\Cmd
-Executes a command line like "shell_exec()" or "exec()", but in a more sophisticated way with **proc_\*** and **stream_\*** functions with more flexibility and feature-rich.
+Executes a command line (like "shell_exec" or "exec"), but in a more sophisticated way with **proc_\*** and **stream_\*** functions with more flexibility and feature-rich.
 
 **Blocking system I/O call**
 ```

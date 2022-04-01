@@ -17,15 +17,19 @@ $stdout = $Cmd->output();
 ```
 $Cmd = new \Utils\Cmd\Cmd(true);
 $Cmd->exec('a heavy command that takes more time');
+
 while(true){
   //  Check once in a while how the process has progressed
+  
   $stdout = $Cmd->get_pipe_stream(\Utils\Cmd\Cmd::PIPE_STDOUT);
   $stderr = $Cmd->get_pipe_stream(\Utils\Cmd\Cmd::PIPE_STDERR);
   
   if(!$Cmd->is_running()){
     //  The process has stopped executing
+    
     if(!$Cmd->is_success()){
       //  The process completed unsuccessfully with an exitcode
+      
       $exitcode = $Cmd->get_exitcode();
       
       if($Cmd->is_terminated()){
@@ -59,7 +63,7 @@ $response = $Net->request('https://the-url');
 ```
 $Net = new \Utils\Net\Net()
   ->decode_type()  // Decode response content type like JSON to array
-  ->keep_alive();  // Enabled keep-alive connection
+  ->keep_alive();  // Enable keep-alive connections
 
 $response = $Net->request('https://the-first-url');
 
@@ -74,12 +78,13 @@ $Net->close();
 $Net = new \Utils\Net\Net()
   ->decode_type();  // Decode response content type like JSON to array
 
-$file_upload = $Net->multipart_value('post_name_of_file', file_get_contents('/path/to/file/The-file-name.txt'), 'The-file-name.txt', 'text/plain');
-$post_variable = $Net->multipart_value('post_name_of_variable', 'the value of the variable');
+$file_upload      = $Net->multipart_value('post_name_of_file', file_get_contents('/path/to/file/The-file-name.txt'), 'The-file-name.txt');
+$post_variable    = $Net->multipart_value('post_name_of_variable', 'the value of the variable');
 
-$custom_headers = [];
-$custom_curl_opt = [];
+$custom_headers   = [];
+$custom_curl_opt  = [];
+
 $post = $file_upload.$post_variable.$Net->multipart_end();
 
-$response = $Net->request('https://the-first-url', $post, $custom_headers, $custom_curl_opt, true);
+$response = $Net->request('https://the-url', $post, $custom_headers, $custom_curl_opt, true);
 ```

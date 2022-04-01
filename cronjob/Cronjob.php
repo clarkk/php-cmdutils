@@ -12,6 +12,9 @@ class Cronjob extends Argv {
 		'process'
 	];
 	
+	const DB_RETRY_TIMEOUT 	= 60;
+	const DB_RETRY_SLEEP 	= 5;
+	
 	public function init(string $base_path, bool $use_db=true){
 		if(!$this->task_name){
 			throw new Error('Cronjob task not given');
@@ -28,31 +31,46 @@ class Cronjob extends Argv {
 			\dbdata\DB::begin();
 			
 			try{
-				$row = (new \dbdata\Get)
-					->get_lock()
-					->exec('cronjob', [
-						'select' => [
-							'id',
-							'is_running_time'
-						],
-						'where' => [
-							'name' => $this->task_name
-						]
-				])->fetch();
-				
-				//	Return error if cronjob is invalid
-				if(!$row){
-					throw new Error('Cronjob invalid: '.$this->task_name);
-				}
-				
-				if(!$row['is_running_time']){
-					$this->cronjob_id = $row['id'];
+				$db_retry_start = time();
+				while(true){
+					$row = (new \dbdata\Get)
+						->get_lock()
+						->exec('cronjob', [
+							'select' => [
+								'id',
+								'is_running_time'
+							],
+							'where' => [
+								'name' => $this->task_name
+							]
+					])->fetch();
 					
-					$this->exec($use_db);
-				}
-				else{
-					if($this->verbose){
-						echo "Cronjob '$this->task_name' is already running and has been running for ".(time() - $row['is_running_time'])." secs\n";
+					//	Return error if cronjob is invalid
+					if(!$row){
+						throw new Error('Cronjob invalid: '.$this->task_name);
+					}
+					
+					if(!$row['is_running_time']){
+						$this->cronjob_id = $row['id'];
+						
+						$this->exec($use_db);
+						
+						break;
+					}
+					else{
+						if(time() - $db_retry_start >= self::DB_RETRY_TIMEOUT){
+							if($this->verbose){
+								echo "Retry timeout\n";
+							}
+							
+							break;
+						}
+						
+						if($this->verbose){
+							echo "Cronjob '$this->task_name' is already running and has been running for ".(time() - $row['is_running_time'])." secs! Retry in ".self::DB_RETRY_SLEEP." secs...\n";
+						}
+						
+						sleep(self::DB_RETRY_SLEEP);
 					}
 				}
 			}

@@ -2,11 +2,8 @@
 
 namespace Utils\SSH;
 
-class SSH extends \Utils\Net\Net_error_codes {
-	private $output 		= '';
-	
-	private $is_stream 		= false;
-	private $pipes 			= [];
+class SSH implements \Utils\Net\Error_codes {
+	use \Utils\Cmd\Cmd_common;
 	
 	private $session;
 	private $sftp;
@@ -40,23 +37,6 @@ class SSH extends \Utils\Net\Net_error_codes {
 		return time() - $this->time_last_exec;
 	}
 	
-	public function output(bool $trim=false, bool $stream_wait=false): string{
-		if($stream_wait){
-			while(true){
-				if($output = stream_get_contents($this->pipes[self::PIPE_STDOUT])){
-					return $trim ? trim($output) : $output;
-				}
-			}
-		}
-		else{
-			return $trim ? trim($this->output) : $this->output;
-		}
-	}
-	
-	public function get_pipe_stream(int $pipe): string{
-		return stream_get_contents($this->pipes[$pipe]);
-	}
-	
 	public function exec(string $command, bool $trim=false){
 		$stream = ssh2_exec($this->session, $command);
 		
@@ -65,11 +45,8 @@ class SSH extends \Utils\Net\Net_error_codes {
 		
 		$this->time_last_exec = time();
 		
-		if($this->is_stream){
-			stream_set_read_buffer($this->pipes[self::PIPE_STDOUT], 0);
-			stream_set_read_buffer($this->pipes[self::PIPE_STDERR], 0);
-		}
-		else{
+		//	Blocking call: Return stderr
+		if(!$this->is_stream){
 			stream_set_blocking($this->pipes[self::PIPE_STDOUT], true);
 			stream_set_blocking($this->pipes[self::PIPE_STDERR], true);
 			
@@ -78,6 +55,9 @@ class SSH extends \Utils\Net\Net_error_codes {
 			
 			return $trim ? trim($stderr) : $stderr;
 		}
+		
+		stream_set_read_buffer($this->pipes[self::PIPE_STDOUT], 0);
+		stream_set_read_buffer($this->pipes[self::PIPE_STDERR], 0);
 	}
 	
 	public function upload(string $local, string $remote){
@@ -93,7 +73,7 @@ class SSH extends \Utils\Net\Net_error_codes {
 			unset($this->sftp);
 		}
 		
-		//	Fix: segfault issue on disconnect
+		//	Fix: segfault issue with ssh2_disconnect
 		unset($this->session);
 		//ssh2_disconnect($this->session);
 	}

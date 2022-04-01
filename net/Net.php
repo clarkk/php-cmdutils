@@ -2,8 +2,8 @@
 
 namespace Utils\Net;
 
-class Net extends Net_error_codes {
-	private $curl;	
+class Net implements Error_codes {
+	private $curl;
 	private $keep_alive 	= false;
 	private $decode_type 	= false;
 	

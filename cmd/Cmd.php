@@ -3,12 +3,9 @@
 namespace Utils\Cmd;
 
 class Cmd extends Proc {
-	private $output 		= '';
+	use Cmd_common;
 	
-	private $is_stream 		= false;
 	private $use_stdin 		= false;
-	
-	protected $pipes 		= [];
 	
 	private $exitcode 		= -1;
 	private $termsig 		= false;
@@ -23,27 +20,6 @@ class Cmd extends Proc {
 	public function __construct(bool $is_stream=false, bool $use_stdin=false){
 		$this->is_stream = $is_stream;
 		$this->use_stdin = $use_stdin;
-	}
-	
-	public function output(bool $trim=false, bool $stream_wait=false): string{
-		//	Non-blocking call
-		if($this->is_stream){
-			//	Wait until stdout returns data
-			if($stream_wait){
-				while(true){
-					if($output = stream_get_contents($this->pipes[self::PIPE_STDOUT])){
-						return $trim ? trim($output) : $output;
-					}
-				}
-			}
-			
-			$output = stream_get_contents($this->pipes[self::PIPE_STDOUT]);
-			
-			return $trim ? trim($output) : $output;
-		}
-		
-		//	Blocking call: Return stdout
-		return $trim ? trim($this->output) : $this->output;
 	}
 	
 	public function input(string $data){
@@ -78,10 +54,6 @@ class Cmd extends Proc {
 		$this->exitcode = $status['termsig'];
 		
 		return false;
-	}
-	
-	public function get_pipe_stream(int $pipe=self::PIPE_STDOUT): string{
-		return stream_get_contents($this->pipes[$pipe]);
 	}
 	
 	public function exec(string $command, bool $trim=false){

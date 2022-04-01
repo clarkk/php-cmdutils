@@ -93,3 +93,20 @@ $post = $file_upload.$post_variable.$Net->multipart_end();
 
 $response = $Net->request('https://the-url', $post, $custom_headers, $custom_curl_opt, true);
 ```
+
+# \Utils\SSH\SSH
+Executes command line via SSH with **ssh2_\*** and **stream_\*** functions.
+
+Note: Remember to set the constants RSA_PRIVATE and RSA_PUBLIC with the correct paths to your RSA private and public key pair.
+
+**SSH blocking system I/O call**
+```
+$SSH = new \Utils\SSH\SSH('root', 'host');
+if($stderr = $SSH->exec('cat filename')){
+  throw new Error($stderr);
+}
+$stdout = $SSH->output();
+$SSH->disconnect();
+```
+
+**SSH non-blocking system I/O call**

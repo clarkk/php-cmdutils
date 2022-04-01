@@ -27,12 +27,12 @@ class Cronjob extends Argv {
 		}
 		
 		if($use_db){
-			//	Start transaction with read lock to prevent multiple of the same cronjob to run in parallel
-			\dbdata\DB::begin();
-			
 			try{
 				$db_retry_start = time();
 				while(true){
+					//	Start transaction with read lock to prevent multiple of the same cronjob to run in parallel
+					\dbdata\DB::begin();
+					
 					$row = (new \dbdata\Get)
 						->get_lock()
 						->exec('cronjob', [
@@ -58,6 +58,9 @@ class Cronjob extends Argv {
 						break;
 					}
 					else{
+						//	Commit transaction and release read lock
+						\dbdata\DB::commit();
+						
 						if(time() - $db_retry_start >= self::DB_RETRY_TIMEOUT){
 							if($this->verbose){
 								echo "Retry timeout\n";
@@ -132,12 +135,14 @@ class Cronjob extends Argv {
 			throw new Error('Cronjob class missing: '.$class_name);
 		}
 		
+		//	Start transaction for the task
 		if($use_db){
 			\dbdata\DB::begin();
 		}
 		
 		new $class_name($this->task_name, $this->verbose);
 		
+		//	Commit transaction for the task
 		if($use_db){
 			\dbdata\DB::commit();
 		}

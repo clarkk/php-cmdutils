@@ -2,14 +2,12 @@
 
 namespace Utils\Procs_queue;
 
-use \Utils\SSH\Error;
-
 class Worker_init extends \Utils\SSH\SSH {
 	public function get_nproc(): int{
 		$this->exec('nproc');
 		
 		if(!$nproc = (int)$this->output()){
-			throw new Error('Could not determine nproc', self::ERR_PROCESS);
+			throw new \Utils\SSH\Error('Could not determine nproc', self::ERR_PROCESS);
 		}
 		
 		return $nproc;
@@ -17,13 +15,13 @@ class Worker_init extends \Utils\SSH\SSH {
 	
 	public function check_proc_path(string $proc_path){
 		if(!$this->check_path($proc_path, true)){
-			throw new Error("proc path not found: $proc_path", self::ERR_PROCESS);
+			throw new \Utils\SSH\Error("proc path not found: $proc_path", self::ERR_PROCESS);
 		}
 	}
 	
 	public function check_tmp_path(string $tmp_path){
 		if(!$this->check_path($tmp_path)){
-			throw new Error("tmp path not found: $tmp_path", self::ERR_PROCESS);
+			throw new \Utils\SSH\Error("tmp path not found: $tmp_path", self::ERR_PROCESS);
 		}
 	}
 	

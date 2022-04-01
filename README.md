@@ -55,7 +55,7 @@ Calls an URL with **curl_\*** functions.
 $Net = new \Utils\Net\Net()
   ->decode_type();  // Decode response content type like JSON to array
 
-//  The connection is automatically closed when keep-alive is not enabled
+//  GET request (connection is automatically closed when keep-alive is not enabled)
 $response = $Net->request('https://the-url');
 ```
 
@@ -65,9 +65,14 @@ $Net = new \Utils\Net\Net()
   ->decode_type()  // Decode response content type like JSON to array
   ->keep_alive();  // Enable keep-alive connections
 
-$response = $Net->request('https://the-first-url');
+//  GET request
+$response = $Net->request('https://the-first-url?query=test');
 
+//  POST request
 $response = $Net->request('https://the-second-url', 'var1='.urlencode('value of first var').'&var2='.urlencode('value of second var'));
+
+//  POST request with JSON
+$response = $Net->request('https://the-second-url', json_encode($arr));
 
 //  Closes connection after use
 $Net->close();

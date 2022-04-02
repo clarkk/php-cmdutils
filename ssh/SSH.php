@@ -68,8 +68,8 @@ class SSH implements \Utils\Net\Error_codes {
 		stream_copy_to_stream(fopen($local, 'r'), fopen('ssh2.sftp://'.intval($this->sftp).$remote, 'w'));
 	}
 	
-	public function exec_proc_stat(int $pid): string{
-		return $this->exec("cat /proc/$pid/stat");
+	public function exec_is_proc_running(int $pid): string{
+		return $this->exec("! [ -f /proc/$pid/stat ]; echo $?");
 	}
 	
 	public function disconnect(){

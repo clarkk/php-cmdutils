@@ -1,6 +1,11 @@
 # php-utils
 A powerful bundle of basic system (Linux) utility tools for your PHP web-application
 
+## Classes
+- [\Utils\Cmd\Cmd](#utilscmdcmd)
+- [\Utils\Net\Net](#utilsnetnet)
+- [\Utils\SSH\SSH](#utilssshssh)
+
 ## \Utils\Cmd\Cmd
 Executes a command line (like "shell_exec" or "exec"), but in a more sophisticated way with **proc_\*** and **stream_\*** functions with more flexibility and feature-rich.
 
@@ -120,7 +125,14 @@ while(true){
   $stdout = $Cmd->get_pipe_stream(\Utils\SSH\SSH::PIPE_STDOUT);
   $stderr = $Cmd->get_pipe_stream(\Utils\SSH\SSH::PIPE_STDERR);
   
+  //  It's technical not possible to listen for a signal when the process has completed from the same SSH session
   
+  //  But you can prepend the command with `echo $$;` to print the PID of the process before it starts,
+  //  and then you can check if the PID is still running from another SSH session via `$SSH->exec_is_proc_running($pid)`
+  //  e.g. `echo $$; command`
+  
+  //  Append the command with `;echo -e "\n$?"` to print the exitcode of the process when completed.
+  //  e.g. `command; echo -e "\n$?"`
   
   sleep(5);
 }

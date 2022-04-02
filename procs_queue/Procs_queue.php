@@ -415,7 +415,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 				$this->read_proc_stream($proc['ssh'], $proc['id'], true);
 				
 				//	Check if proc has stopped
-				$worker['ssh']->exec('cat /proc/'.$proc['pid'].'/stat');
+				$worker['ssh']->exec_proc_stat($proc['pid']);
 				if(!$worker['ssh']->output(true)){
 					$worker['ssh']->exec('cat '.$proc['exitcode'].' 2>/dev/null');
 					$exitcode = $this->parse_exitcode($worker['ssh']->output(true));

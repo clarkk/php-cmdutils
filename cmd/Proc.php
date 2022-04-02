@@ -57,9 +57,9 @@ class Proc {
 	}
 	
 	private function getconf(string $value): int{
-		$apc_key = 'SYS_'.$value;
+		$apc_key = "SYS_$value";
 		if(!$output = apcu_fetch($apc_key)){
-			$output = (int)shell_exec('getconf '.$value);
+			$output = (int)shell_exec("getconf $value");
 			apcu_store($apc_key, $output, self::APC_CACHE);
 		}
 		
@@ -67,6 +67,6 @@ class Proc {
 	}
 	
 	private function get_proc_stat(int $pid): array{
-		return explode(' ', file_get_contents('/proc/'.$pid.'/stat') ?: '');
+		return explode(' ', file_get_contents("/proc/$pid/stat") ?: '');
 	}
 }

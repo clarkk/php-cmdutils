@@ -125,14 +125,25 @@ while(true){
   $stdout = $Cmd->get_pipe_stream(\Utils\SSH\SSH::PIPE_STDOUT);
   $stderr = $Cmd->get_pipe_stream(\Utils\SSH\SSH::PIPE_STDERR);
   
-  //  It's technical not possible to listen for a signal when the process has completed from the same SSH session
+  /*
+    Technically it's not possible (from the same SSH session)
+    - to listen for a signal when the process has completed
+    - to fetch the exitcode of the process
+    
+    PROCESS COMPLETED (workaround)
+    -----------------------------------
+    Prepend the command with 'echo $$;' to print the PID of the process before it begins
+      e.g. 'echo $$; command'
+    
+    Then check if the PID is still running from another SSH session via
+      $SSH->exec_is_proc_running($pid);
+      $is_pid_running = (int)$SSH->output();
   
-  //  But you can prepend the command with `echo $$;` to print the PID of the process before it starts,
-  //  and then you can check if the PID is still running from another SSH session via `$SSH->exec_is_proc_running($pid)`
-  //  e.g. `echo $$; command`
-  
-  //  Append the command with `;echo -e "\n$?"` to print the exitcode of the process when completed.
-  //  e.g. `command; echo -e "\n$?"`
+    PROCESS EXITCODE (workaround)
+    -----------------------------------
+    Append the command with ';echo -e "\n$?"' to print the exitcode of the process when completed
+      e.g. 'command; echo -e "\n$?"'
+  */
   
   sleep(5);
 }

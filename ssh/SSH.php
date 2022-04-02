@@ -69,7 +69,7 @@ class SSH implements \Utils\Net\Error_codes {
 	}
 	
 	public function exec_is_proc_running(int $pid): string{
-		return $this->exec("! [ -f /proc/$pid/stat ]; echo $?");
+		return $this->exec("[ -f /proc/$pid/stat ] && echo 1 || echo 0");
 	}
 	
 	public function disconnect(){

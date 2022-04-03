@@ -91,12 +91,9 @@ $Net = (new \Utils\Net\Net())
 $file_upload      = $Net->multipart_value('post_name_of_file', file_get_contents('/path/to/file/The-file-name.txt'), 'The-file-name.txt');
 $post_variable    = $Net->multipart_value('post_name_of_variable', 'the value of the variable');
 
-$custom_headers   = [];
-$custom_curl_opt  = [];
-
 $post = $file_upload.$post_variable.$Net->multipart_end();
 
-$response = $Net->request_multipart('https://the-url', $post, $custom_headers, $custom_curl_opt, true);
+$response = $Net->request_multipart('https://the-url', $post);
 ```
 
 ## \Utils\SSH\SSH

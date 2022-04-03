@@ -60,15 +60,50 @@ class Net implements Error_codes {
 		curl_close($this->curl);
 	}
 	
-	public function request(string $url, string $post='', array $headers=[], array $options=[], bool $multipart=false): array{
-		if(!strpos($url, '://')){
-			throw new Error("Protocol missing in URL '$url'", self::ERR_NETWORK);
+	public function request(string $url, string $post='', array $headers=[], array $options=[]): array{
+		$this->check_url($url);
+		
+		return $this->send($url, $post, $headers, $options);
+	}
+	
+	public function request_multipart(string $url, string $post='', array $headers=[], array $options=[]): array{
+		$this->check_url($url);
+		
+		$headers[] = self::CONTENT_TYPE.': multipart/form-data; boundary='.$this->boundary;
+		
+		return $this->send($url, $post, $headers, $options);
+	}
+	
+	public function multipart_value(string $key, string $value, string $file_name='', string $content_type=''): string{
+		if(!$this->boundary){
+			$this->boundary = md5(time());
 		}
 		
-		if($multipart){
-			$headers[] = self::CONTENT_TYPE.': multipart/form-data; boundary='.$this->boundary;
+		return '--'.$this->boundary.self::CRLF
+			.self::CONTENT_DISPOSITION.': form-data; name="'.$key.'"'.($file_name ? '; filename="'.$file_name.'"' : '').self::CRLF
+			.($content_type ? self::CONTENT_TYPE.': '.$content_type.self::CRLF : '')
+			.self::CONTENT_LENGTH.': '.strlen($value).self::CRLF.self::CRLF
+			.$value.self::CRLF;
+	}
+	
+	public function multipart_end(): string{
+		return '--'.$this->boundary.'--';
+	}
+	
+	protected function decode_response(string $type, string &$response){
+		switch($type){
+			case self::CONTENT_TYPE_JSON:
+				try{
+					$response = json_decode($response, true, 512, JSON_THROW_ON_ERROR);
+				}
+				catch(\Exception $e){
+					throw new Error('JSON decode error', self::ERR_RESPONSE);
+				}
+				break;
 		}
-		
+	}
+	
+	private function send(string $url, string $post, array $headers, array $options): array{
 		curl_setopt_array($this->curl, [
 			CURLOPT_HTTPHEADER 		=> array_merge([
 				'Accept-Encoding: gzip'
@@ -116,32 +151,9 @@ class Net implements Error_codes {
 		];
 	}
 	
-	public function multipart_value(string $key, string $value, string $file_name='', string $content_type=''): string{
-		if(!$this->boundary){
-			$this->boundary = md5(time());
-		}
-		
-		return '--'.$this->boundary.self::CRLF
-			.self::CONTENT_DISPOSITION.': form-data; name="'.$key.'"'.($file_name ? '; filename="'.$file_name.'"' : '').self::CRLF
-			.($content_type ? self::CONTENT_TYPE.': '.$content_type.self::CRLF : '')
-			.self::CONTENT_LENGTH.': '.strlen($value).self::CRLF.self::CRLF
-			.$value.self::CRLF;
-	}
-	
-	public function multipart_end(): string{
-		return '--'.$this->boundary.'--';
-	}
-	
-	protected function decode_response(string $type, string &$response){
-		switch($type){
-			case self::CONTENT_TYPE_JSON:
-				try{
-					$response = json_decode($response, true, 512, JSON_THROW_ON_ERROR);
-				}
-				catch(\Exception $e){
-					throw new Error('JSON decode error', self::ERR_RESPONSE);
-				}
-				break;
+	private function check_url(string $url){
+		if(!strpos($url, '://')){
+			throw new Error("Protocol missing in URL '$url'", self::ERR_NETWORK);
 		}
 	}
 	

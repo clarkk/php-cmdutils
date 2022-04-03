@@ -96,7 +96,7 @@ $custom_curl_opt  = [];
 
 $post = $file_upload.$post_variable.$Net->multipart_end();
 
-$response = $Net->request('https://the-url', $post, $custom_headers, $custom_curl_opt, true);
+$response = $Net->request_multipart('https://the-url', $post, $custom_headers, $custom_curl_opt, true);
 ```
 
 ## \Utils\SSH\SSH

@@ -67,7 +67,7 @@ class Proc {
 		$hertz 			= self::getconf('CLK_TCK');
 		$pagesize_kb 	= self::getconf('PAGESIZE') / 1024;
 		
-		$uptime 	= explode(' ', file_get_contents('/proc/uptime'))[0];
+		$uptime 	= (int)file_get_contents('/proc/uptime');
 		$cputime 	= $procstat[self::PROCSTAT_UTIME] + $procstat[self::PROCSTAT_STIME] + $procstat[self::PROCSTAT_CUTIME] + $procstat[self::PROCSTAT_CSTIME];
 		$starttime 	= $procstat[self::PROCSTAT_STARTTIME];
 		$seconds 	= $uptime - ($starttime / $hertz);
@@ -75,7 +75,7 @@ class Proc {
 		return [
 			'cpu'	=> round(($cputime / $hertz / $seconds) * 100, 1).'%',
 			'mem'	=> round($procstat[self::PROCSTAT_RSS] * $pagesize_kb / 1024, 2).'M',
-			'start'	=> (int)(time() - ($starttime / $hertz)),
+			'start'	=> (int)(time() - $seconds),
 			'time'	=> (int)$seconds
 		];
 	}

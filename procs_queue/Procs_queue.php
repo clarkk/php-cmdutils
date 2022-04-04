@@ -244,10 +244,14 @@ abstract class Procs_queue extends \Utils\Verbose {
 		else{
 			if(!$is_task_idle){
 				if($this->verbose){
-					$this->verbose('Task fetch', self::COLOR_YELLOW);
+					$task_time = microtime(true);
 				}
 				
 				$this->tasks = $this->task_fetch($proc_slots['num']);
+				
+				if($this->verbose){
+					$this->verbose('Task fetch ('.round(microtime(true) - $task_time, 4).' secs)', self::COLOR_YELLOW);
+				}
 			}
 			
 			if($this->tasks){

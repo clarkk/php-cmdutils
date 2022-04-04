@@ -75,7 +75,7 @@ class Proc {
 		return [
 			'cpu'	=> round(($cputime / $hertz / $seconds) * 100, 1).'%',
 			'mem'	=> round($procstat[self::PROCSTAT_RSS] * $pagesize_kb / 1024, 2).'M',
-			'start'	=> (int)$procstat[self::PROCSTAT_STARTTIME],
+			'start'	=> (int)(time() - ((int)$procstat[self::PROCSTAT_STARTTIME] / $hertz)),
 			'time'	=> (int)$seconds
 		];
 	}

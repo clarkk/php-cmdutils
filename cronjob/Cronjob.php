@@ -16,37 +16,41 @@ class Cronjob extends Argv {
 	const DB_RETRY_SLEEP 	= 5;
 	
 	static public function task_status(string $task_name, bool $quick=false): array{
-		$procs = [];
+		$task = \Utils\Cmd\Proc::proc_name('php', 'cronjob\.php '.$task_name.'\b');
+		if($quick){
+			return $task;
+		}
 		
-		$output = trim(shell_exec('ps --noheader -o pid,ppid,cmd -C php | grep "cronjob\.php '.$task_name.'\b"'));
+		$procs = [
+			'master'	=> [],
+			'children'	=> []
+		];
 		
-		foreach(array_filter(explode("\n", $output)) as $proc){
-			$pid 	= (int)$proc;
-			$ppid 	= (int)substr($proc, strpos($proc, ' '));
+		if(!$task){
+			return $procs;
+		}
+		
+		foreach($task as $proc){
+			$proc += [
+				'pcmd' => \Utils\Cmd\Proc::proc_cmd($proc['ppid'])
+			] + \Utils\Cmd\Proc::stat($proc['pid']);
 			
-			$list 	= explode(' ', $proc, 3);
-			
-			$cmd = [
-				'pid'	=> $pid,
-				'ppid'	=> $ppid,
-				'cmd'	=> array_pop($list)
-			];
-			
-			if($quick){
-				$procs[] = $cmd;
+			if(strpos($proc['cmd'], ' -process=')){
+				$procs['children'][] = $proc;
 			}
 			else{
-				$cmd += [
-					'pcmd' => trim(shell_exec('ps --noheader -p '.$ppid.' -o cmd'))
-				] + (new \Utils\Cmd\Proc)->stat($pid);
-				
-				if(strpos($proc, ' -process=')){
-					$procs[] = $cmd;
-				}
-				else{
-					array_unshift($procs, $cmd);
-				}
+				$procs['master'][] = $proc;
 			}
+		}
+		
+		usort($procs['master'], function($a, $b) {
+			return $b['start'] <=> $a['start'];
+		});
+		
+		if($procs['children']){
+			usort($procs['children'], function($a, $b) {
+				return $b['start'] <=> $a['start'];
+			});
 		}
 		
 		return $procs;

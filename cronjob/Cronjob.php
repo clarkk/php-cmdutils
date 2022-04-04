@@ -24,10 +24,12 @@ class Cronjob extends Argv {
 			$pid 	= (int)$proc;
 			$ppid 	= (int)substr($proc, strpos($proc, ' '));
 			
+			$list 	= explode(' ', $proc, 3);
+			
 			$cmd = [
 				'pid'	=> $pid,
 				'ppid'	=> $ppid,
-				'cmd'	=> substr($proc, strpos($proc, 'cronjob.php'))
+				'cmd'	=> array_pop($list)
 			];
 			
 			if($quick){

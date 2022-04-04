@@ -16,12 +16,20 @@ class Proc {
 	
 	const APC_CACHE 			= 60*60*24;
 	
+	static public function proc_cmd(int $pid): string{
+		return rtrim(str_replace("\x00", ' ', file_get_contents("/proc/$pid/cmdline")));
+	}
+	
+	static public function proc_stat(int $pid): array{
+		return explode(' ', file_get_contents("/proc/$pid/stat") ?: '');
+	}
+	
 	public function get_nice(?int $pid=null): int{
 		if(!$pid && isset($this->proc)){
 			$pid = $this->get_pid();
 		}
 		
-		if($nice = $this->get_proc_stat($pid)[self::PROCSTAT_PRIORITY] ?? 0){
+		if($nice = self::proc_stat($pid)[self::PROCSTAT_PRIORITY] ?? 0){
 			return $nice - 20;
 		}
 		
@@ -33,7 +41,7 @@ class Proc {
 			$pid = $this->get_pid();
 		}
 		
-		if(!$procstat = $this->get_proc_stat($pid)){
+		if(!$procstat = self::proc_stat($pid)){
 			return [
 				'cpu'	=> '0%',
 				'mem'	=> '0M',
@@ -64,9 +72,5 @@ class Proc {
 		}
 		
 		return $output;
-	}
-	
-	private function get_proc_stat(int $pid): array{
-		return explode(' ', file_get_contents("/proc/$pid/stat") ?: '');
 	}
 }

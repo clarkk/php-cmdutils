@@ -12,8 +12,8 @@ class Cronjob extends Argv {
 		'process'
 	];
 	
-	const DB_RETRY_TIMEOUT 	= 60;
-	const DB_RETRY_SLEEP 	= 5;
+	const RETRY_TIMEOUT 	= 60;
+	const RETRY_SLEEP 		= 5;
 	
 	static public function task_status(string $task_name, bool $quick=false): array{
 		$task = \Utils\Cmd\Proc::proc_name('php', 'cronjob\.php '.$task_name.'\b');
@@ -69,7 +69,7 @@ class Cronjob extends Argv {
 		
 		if($use_db){
 			try{
-				$db_retry_start = time();
+				$retry_start = time();
 				while(true){
 					//	Start transaction with read lock to prevent multiple of the same cronjob to run in parallel
 					\dbdata\DB::begin();
@@ -94,7 +94,7 @@ class Cronjob extends Argv {
 					if(!$row['is_running_time']){
 						$this->cronjob_id = $row['id'];
 						
-						$this->exec($use_db);
+						$this->exec($use_db, $retry_start);
 						
 						break;
 					}
@@ -102,7 +102,7 @@ class Cronjob extends Argv {
 						//	Commit transaction and release read lock
 						\dbdata\DB::commit();
 						
-						if(time() - $db_retry_start >= self::DB_RETRY_TIMEOUT){
+						if(time() - $retry_start >= self::RETRY_TIMEOUT){
 							if($this->verbose){
 								echo "Retry timeout\n";
 							}
@@ -111,10 +111,10 @@ class Cronjob extends Argv {
 						}
 						
 						if($this->verbose){
-							echo "Cronjob '$this->task_name' is already running and has been running for ".(time() - $row['is_running_time'])." secs! Retry in ".self::DB_RETRY_SLEEP." secs...\n";
+							echo "Cronjob '$this->task_name' is already running and has been running for ".(time() - $row['is_running_time'])." secs! Retry in ".self::RETRY_SLEEP." secs...\n";
 						}
 						
-						sleep(self::DB_RETRY_SLEEP);
+						sleep(self::RETRY_SLEEP);
 					}
 				}
 			}
@@ -146,7 +146,7 @@ class Cronjob extends Argv {
 		}
 	}
 	
-	private function exec(bool $use_db){
+	private function exec(bool $use_db, int $retry_start=0){
 		$ppid 	= posix_getppid();
 		$pid 	= posix_getpid();
 		
@@ -161,6 +161,7 @@ class Cronjob extends Argv {
 				'is_running_time'		=> $time,
 				'is_failure_notified'	=> 0,
 				'time'					=> $time,
+				'time_offset'			=> $time - $retry_start,
 				'ppid'					=> $ppid,
 				'pid'					=> $pid
 			]);

@@ -44,12 +44,12 @@ class Cronjob extends Argv {
 		}
 		
 		usort($procs['master'], function($a, $b) {
-			return $b['time'] <=> $a['time'];
+			return $a['start'] <=> $b['start'];
 		});
 		
 		if($procs['children']){
 			usort($procs['children'], function($a, $b) {
-				return $b['time'] <=> $a['time'];
+				return $a['start'] <=> $b['start'];
 			});
 		}
 		

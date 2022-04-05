@@ -2,8 +2,11 @@
 
 namespace Utils\Cmd;
 
-class Cmd extends Proc {
+class Cmd {
 	use Cmd_common;
+	
+	private $pid;
+	private $proc;
 	
 	private $use_stdin 		= false;
 	

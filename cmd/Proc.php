@@ -3,9 +3,6 @@
 namespace Utils\Cmd;
 
 class Proc {
-	protected $pid;
-	protected $proc;
-	
 	const PROCSTAT_UTIME 		= 13;
 	const PROCSTAT_STIME 		= 14;
 	const PROCSTAT_CUTIME 		= 15;
@@ -16,7 +13,7 @@ class Proc {
 	
 	const APC_CACHE 			= 60*60*24;
 	
-	static public function proc_name(string $name, string $filter=''): array{
+	static public function name(string $name, string $filter=''): array{
 		if(!$output = rtrim(shell_exec('ps --noheader -o pid,ppid,cmd -C '.$name.($filter ? ' | grep "'.$filter.'"' : '')))){
 			return [];
 		}
@@ -38,24 +35,24 @@ class Proc {
 		return $procs;
 	}
 	
-	static public function proc_cmd(int $pid): string{
+	static public function cmd(int $pid): string{
 		return rtrim(str_replace("\x00", ' ', file_get_contents("/proc/$pid/cmdline") ?: ''));
 	}
 	
-	static public function proc_stat(int $pid): array{
+	static public function stat(int $pid): array{
 		return explode(' ', file_get_contents("/proc/$pid/stat") ?: '');
 	}
 	
 	/*static public function get_nice(int $pid): int{
-		if($nice = self::proc_stat($pid)[self::PROCSTAT_PRIORITY] ?? 0){
+		if($nice = self::stat($pid)[self::PROCSTAT_PRIORITY] ?? 0){
 			return $nice - 20;
 		}
 		
 		return 0;
 	}*/
 	
-	static public function stat(int $pid): array{
-		if(!$procstat = self::proc_stat($pid)){
+	static public function stat_res(int $pid): array{
+		if(!$procstat = self::stat($pid)){
 			return [
 				'cpu'	=> '0%',
 				'mem'	=> '0M',

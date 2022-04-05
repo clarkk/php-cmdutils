@@ -16,7 +16,7 @@ class Cronjob extends Argv {
 	const RETRY_SLEEP 		= 5;
 	
 	static public function task_status(string $task_name, bool $quick=false): array{
-		$task = \Utils\Cmd\Proc::proc_name('php', 'cronjob\.php '.$task_name.'\b');
+		$task = \Utils\Cmd\Proc::name('php', 'cronjob\.php '.$task_name.'\b');
 		if($quick){
 			return $task;
 		}
@@ -32,8 +32,8 @@ class Cronjob extends Argv {
 		
 		foreach($task as $proc){
 			$proc += [
-				'pcmd' => \Utils\Cmd\Proc::proc_cmd($proc['ppid'])
-			] + \Utils\Cmd\Proc::stat($proc['pid']);
+				'pcmd' => \Utils\Cmd\Proc::cmd($proc['ppid'])
+			] + \Utils\Cmd\Proc::stat_res($proc['pid']);
 			
 			if(strpos($proc['cmd'], ' -process=')){
 				$procs['children'][] = $proc;

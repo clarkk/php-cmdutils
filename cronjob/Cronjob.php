@@ -15,18 +15,13 @@ class Cronjob extends Argv {
 	const RETRY_TIMEOUT 	= 60;
 	const RETRY_SLEEP 		= 5;
 	
-	static public function task_status(string $task_name, bool $quick=false): array{
-		$task = \Utils\Cmd\Proc::name('php', 'cronjob\.php '.$task_name.'\b');
-		if($quick){
-			return $task;
-		}
-		
+	static public function task_status(string $task_name): array{
 		$procs = [
 			'master'	=> [],
 			'children'	=> []
 		];
 		
-		if(!$task){
+		if(!$task = \Utils\Cmd\Proc::name('php', 'cronjob\.php '.$task_name.'\b')){
 			return $procs;
 		}
 		

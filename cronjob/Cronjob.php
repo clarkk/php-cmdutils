@@ -15,6 +15,42 @@ class Cronjob extends Argv {
 	const RETRY_TIMEOUT 	= 60;
 	const RETRY_SLEEP 		= 5;
 	
+	static public function failed_task(): array{
+		$result = (new \dbdata\Get)->exec('cronjob', [
+			'select' => [
+				'id',
+				'name',
+				'is_running_time',
+				'is_failure_notified',
+				'time_offset'
+			],
+			'where' => [
+				'name !'				=> 'watch_cronjobs',
+				'is_running_time !'		=> 0,
+				'is_failure_notified'	=> 0
+			]
+		]);
+		while($row = $result->fetch()){
+			if(self::check_failed_process_time_diff($row['name'], $row['is_running_time'], $row['time_offset'])){
+				if((new \dbdata\Get)->exec('cronjob', [
+					'select' => [
+						'is_running_time'
+					],
+					'where' => [
+						'id' => $row['id']
+					]
+				])->fetch()['is_running_time']){
+					return [
+						'id'	=> $row['id'],
+						'name'	=> $row['name']
+					];
+				}
+			}
+		}
+		
+		return [];
+	}
+	
 	static public function task_status(string $task_name): array{
 		$procs = [
 			'master'	=> [],
@@ -139,6 +175,18 @@ class Cronjob extends Argv {
 		else{
 			$this->exec($use_db);
 		}
+	}
+	
+	static private function check_failed_process_time_diff(string $task_name, int $is_running_time, int $time_offset): bool{
+		if(!$is_running_time){
+			return false;
+		}
+		
+		if(!$master = reset(self::task_status($task_name)['master'])){
+			return true;
+		}
+		
+		return abs($is_running_time - $time_offset - $master['start']) > 1;
 	}
 	
 	private function exec(bool $use_db, int $retry_start=0){

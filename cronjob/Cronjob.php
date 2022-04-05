@@ -194,6 +194,7 @@ class Cronjob extends Argv {
 		if($use_db){
 			(new \dbdata\Put)->exec('cronjob', $this->cronjob_id, [
 				'is_running_time'	=> 0,
+				'time_offset'		=> 0,
 				'time_exec'			=> $time_exec,
 				'ppid'				=> null,
 				'pid'				=> null

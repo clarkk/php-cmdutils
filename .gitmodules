@@ -1,0 +1,3 @@
+[submodule "cmd/cpp-proc"]
+	path = cmd/cpp-proc
+	url = git@github.com:clarkk/cpp-proc.git

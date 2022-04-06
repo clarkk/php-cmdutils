@@ -4,7 +4,20 @@ namespace Utils\Cmd;
 
 class Proc {
 	static public function name(string $name, string $filter='', bool $stat=false): array{
-		if(!$output = rtrim(shell_exec(dirname(__FILE__).'/cpp-proc/proc -name '.$name.($filter ? ' -grep "'.$filter.'"' : '').($stat ? ' -stat' : '')))){
+		$cmd = dirname(__FILE__).'/cpp-proc/proc -name '.$name;
+		if($filter){
+			$cmd .= ' -grep "'.$filter.'"';
+		}
+		if($stat){
+			$cmd .= ' -stat';
+		}
+		
+		$Cmd = new Cmd;
+		if($err = $Cmd->exec($cmd)){
+			throw new Error('Could mot execute cpp-proc: '.$err);
+		}
+		
+		if(!$output = $Cmd->output(true)){
 			return [];
 		}
 		

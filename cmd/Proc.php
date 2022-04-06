@@ -4,7 +4,7 @@ namespace Utils\Cmd;
 
 class Proc {
 	static public function name(string $name, string $filter='', bool $stat=false): array{
-		if(!$output = rtrim(shell_exec('./cpp-proc/proc -name '.$name.($filter ? ' -grep "'.$filter.'"' : '').($stat ? ' -stat' : '')))){
+		if(!$output = rtrim(shell_exec(dirname(__FILE__).'/cpp-proc/proc -name '.$name.($filter ? ' -grep "'.$filter.'"' : '').($stat ? ' -stat' : '')))){
 			return [];
 		}
 		

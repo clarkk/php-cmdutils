@@ -57,15 +57,11 @@ class Cronjob extends Argv {
 			'children'	=> []
 		];
 		
-		if(!$task = \Utils\Cmd\Proc::name('php', 'cronjob\.php '.$task_name.'\b')){
+		if(!$task = \Utils\Cmd\Proc::name('php', 'cronjob\.php '.$task_name.'\b', true)){
 			return $procs;
 		}
 		
 		foreach($task as $proc){
-			$proc += [
-				'pcmd' => \Utils\Cmd\Proc::cmd($proc['ppid'])
-			] + \Utils\Cmd\Proc::stat_res($proc['pid']);
-			
 			if(strpos($proc['cmd'], ' -process=')){
 				$procs['children'][] = $proc;
 			}

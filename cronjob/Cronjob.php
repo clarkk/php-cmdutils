@@ -159,13 +159,13 @@ class Cronjob extends Argv {
 					
 				}
 				else{
-					boot_catch_error($e);
+					\Log\Err::catch_all($e);
 				}
 			}
 			catch(\Throwable $e){
 				\dbdata\DB::rollback();
 				
-				boot_catch_error($e);
+				\Log\Err::catch_all($e);
 			}
 		}
 		else{

@@ -3,21 +3,21 @@
 namespace Utils\Cronjob;
 
 class Cronjob extends Argv {
+	protected $require_task_name = true;
+	protected $allowed_argv = [
+		self::ARG_V,
+		self::ARG_PROCESS
+	];
+	
 	private $cronjob_id;
 	private $cronjob_file;
 	
-	protected $require_task_name = true;
-	protected $allowed_argv = [
-		'v',
-		'process'
-	];
-	
-	const FAILOVER_TIMEOUT 	= 60;
-	const FAILOVER_SLEEP 	= 5;
+	private const FAILOVER_TIMEOUT 	= 60;
+	private const FAILOVER_SLEEP 	= 5;
 	
 	public function init(string $base_path, bool $use_db=true){
 		if(!$this->task_name){
-			throw new Error('Cronjob task not given');
+			throw new Error('Cronjob task name not given');
 		}
 		
 		$this->cronjob_file = $base_path.'/'.$this->task_name.'.php';
@@ -28,7 +28,7 @@ class Cronjob extends Argv {
 		
 		if($use_db){
 			try{
-				$retry_start = time();
+				$failover_start = time();
 				while(true){
 					//	Start transaction with read lock to prevent multiple of the same cronjob to run in parallel
 					\dbdata\DB::begin();
@@ -53,7 +53,7 @@ class Cronjob extends Argv {
 					if(!$row['is_running_time']){
 						$this->cronjob_id = $row['id'];
 						
-						$this->exec($use_db, $retry_start);
+						$this->exec($use_db, $failover_start);
 						
 						break;
 					}
@@ -61,7 +61,7 @@ class Cronjob extends Argv {
 						//	Commit transaction and release read lock
 						\dbdata\DB::commit();
 						
-						if(time() - $retry_start >= self::FAILOVER_TIMEOUT){
+						if(time() - $failover_start >= self::FAILOVER_TIMEOUT){
 							if($this->verbose){
 								echo "Retry timeout\n";
 							}
@@ -105,9 +105,8 @@ class Cronjob extends Argv {
 		}
 	}
 	
-	private function exec(bool $use_db, int $retry_start=0){
-		$ppid 	= posix_getppid();
-		$pid 	= posix_getpid();
+	private function exec(bool $use_db, int $failover_start=0){
+		$pid = posix_getpid();
 		
 		if($this->verbose){
 			echo "Cronjob '$this->task_name' starts executing (pid: $pid)...\n";
@@ -116,12 +115,12 @@ class Cronjob extends Argv {
 		$time = time();
 		
 		if($use_db){
-			(new \dbdata\Put)->exec('cronjob', $this->cronjob_id, [
+			$this->update_cronjob([
 				'is_running_time'		=> $time,
 				'is_failure_notified'	=> 0,
 				'time'					=> $time,
-				'time_offset'			=> $time - $retry_start,
-				'ppid'					=> $ppid,
+				'time_offset'			=> $time - $failover_start,
+				'ppid'					=> posix_getppid(),
 				'pid'					=> $pid
 			]);
 			
@@ -151,7 +150,7 @@ class Cronjob extends Argv {
 		$time_exec = time() - $time;
 		
 		if($use_db){
-			(new \dbdata\Put)->exec('cronjob', $this->cronjob_id, [
+			$this->update_cronjob([
 				'is_running_time'	=> 0,
 				'time_offset'		=> 0,
 				'time_exec'			=> $time_exec,
@@ -169,6 +168,10 @@ class Cronjob extends Argv {
 		if($this->verbose){
 			echo "Cronjob completed in $time_exec secs!\n";
 		}
+	}
+	
+	private function update_cronjob(array $update){
+		(new \dbdata\Put)->exec('cronjob', $this->cronjob_id, $update);
 	}
 }
 

@@ -3,6 +3,9 @@
 namespace Utils\Cronjob;
 
 abstract class Argv {
+	public const ARG_V 				= 'v';
+	public const ARG_PROCESS 		= 'process';
+	
 	protected $task_name;
 	protected $args_var 			= [];
 	
@@ -16,8 +19,8 @@ abstract class Argv {
 		
 		$this->parse_argv($argv);
 		
-		if(isset($this->args_var['v'])){
-			$this->verbose = (int)($this->args_var['v'] ?: 1);
+		if(isset($this->args_var[self::ARG_V])){
+			$this->verbose = (int)($this->args_var[self::ARG_V] ?: 1);
 		}
 	}
 	
@@ -41,19 +44,16 @@ abstract class Argv {
 				$arg = substr($arg, 1);
 				
 				if($pos = strpos($arg, '=')){
-					$key 	= substr($arg, 0, $pos);
-					$value 	= substr($arg, $pos+1);
-					
-					$this->args_var[$key] = $value;
+					$key 					= substr($arg, 0, $pos);
+					$this->args_var[$key]	= substr($arg, $pos+1);
 				}
 				else{
-					$key = $arg;
-					
-					$this->args_var[$key] = '';
+					$key 					= $arg;
+					$this->args_var[$key]	= '';
 				}
 				
 				if(!in_array($key, $this->allowed_argv)){
-					throw new Error('Invalid argument: -'.$arg);
+					throw new Error("Invalid argument: -$arg");
 				}
 			}
 			else{

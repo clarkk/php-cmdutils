@@ -57,12 +57,11 @@ abstract class Argv {
 				}
 			}
 			else{
-				if($this->require_task_name){
-					$this->task_name = $arg;
-				}
-				else{
+				if(!$this->require_task_name){
 					throw new Error('Task name is not allowed');
 				}
+				
+				$this->task_name = $arg;
 			}
 		}
 		

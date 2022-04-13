@@ -14,8 +14,10 @@ abstract class Argv {
 	
 	protected $verbose 				= false;
 	
-	public function __construct(){
+	public function __construct(int $max_exec_time_min=120){
 		global $argv;
+		
+		ini_set('max_execution_time', 60 * $max_exec_time_min);
 		
 		$this->parse_argv($argv);
 		

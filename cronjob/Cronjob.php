@@ -12,6 +12,8 @@ class Cronjob extends Argv {
 	private $cronjob_id;
 	private $cronjob_file;
 	
+	private $Task;
+	
 	private const FAILOVER_TIMEOUT 	= 60;
 	private const FAILOVER_SLEEP 	= 5;
 	
@@ -46,14 +48,15 @@ class Cronjob extends Argv {
 			switch($code){
 				//	MySQL server has gone away
 				case 2006:
-					\Log\Log::err(self::DB_TABLE, $error);
+					$this->log_err($error);
 					
 					echo "$error\n";
 					break;
 				
-				//	Leave cronjob running in DB
 				default:
-					\Log\Err::catch_all($e);
+					$this->log_err($error);
+					
+					echo "$error\n";
 			}
 		}
 		//	Catch fatal errors (Leave cronjob running in DB)
@@ -62,7 +65,7 @@ class Cronjob extends Argv {
 				\dbdata\DB::rollback();
 			}
 			
-			\Log\Log::err(self::DB_TABLE, $this->error_format($e), false);
+			$this->log_err($this->error_format($e));
 			
 			echo "$error\n";
 		}
@@ -151,7 +154,7 @@ class Cronjob extends Argv {
 			throw new Error('Cronjob class missing: '.$class_name);
 		}
 		
-		new $class_name($this->task_name, $this->verbose);
+		$this->Task = new $class_name($this->task_name, $this->verbose);
 		
 		$time_exec = time() - $time_start;
 		
@@ -184,6 +187,10 @@ class Cronjob extends Argv {
 	
 	private function error_format(\Throwable $e): string{
 		return $this->task_name.': '.\Log\Err::format($e);
+	}
+	
+	private function log_err(string $error){
+		\Log\Log::err(self::DB_TABLE, $error, false);
 	}
 	
 	private function update_cronjob(array $update){

@@ -155,6 +155,7 @@ class Cronjob extends Argv {
 		}
 		
 		$this->Task = new $class_name($this->task_name, $this->verbose);
+		$this->Task->exec();
 		
 		$time_exec = time() - $time_start;
 		

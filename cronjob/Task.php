@@ -14,8 +14,6 @@ abstract class Task extends \Utils\Verbose {
 		$this->time_start 	= time();
 		
 		parent::__construct();
-		
-		$this->exec();
 	}
 	
 	protected function start_task(){

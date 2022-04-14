@@ -39,30 +39,30 @@ class Cronjob extends Argv {
 		//	Catch DB errors
 		catch(\dbdata\Error_db $e){
 			$code 	= $e->getCode();
-			$error 	= 'MYSQL error: '.$code.'; '.\Log\Err::format($e);
+			$error 	= 'MYSQL error: '.$code.'; '.$this->error_format($e);
 			
 			\dbdata\DB::rollback();
 			
 			switch($code){
 				//	MySQL server has gone away
 				case 2006:
-					\Log\Log::err(\Log\Log::ERR_FATAL, $error);
+					\Log\Log::err(self::DB_TABLE, $error);
 					
 					echo "$error\n";
 					break;
 				
+				//	Leave cronjob running in DB
 				default:
 					\Log\Err::catch_all($e);
 			}
 		}
-		//	Catch fatal errors
+		//	Catch fatal errors (Leave cronjob running in DB)
 		catch(\Throwable $e){
 			if($use_db){
 				\dbdata\DB::rollback();
 			}
 			
-			$error = \Log\Err::format($e);
-			\Log\Log::err(self::DB_TABLE, $this->task_name.': '.$error, false);
+			\Log\Log::err(self::DB_TABLE, $this->error_format($e), false);
 			
 			echo "$error\n";
 		}
@@ -98,25 +98,23 @@ class Cronjob extends Argv {
 				
 				break;
 			}
-			//	Cronjob is already executing
-			else{
-				//	Commit transaction and release read lock on cronjob
-				\dbdata\DB::commit();
-				
-				if(time() - $failover_start >= self::FAILOVER_TIMEOUT){
-					if($this->verbose){
-						echo "Failover timeout\n";
-					}
-					
-					break;
-				}
-				
+			
+			//	Commit transaction and release read lock on cronjob
+			\dbdata\DB::commit();
+			
+			if(time() - $failover_start >= self::FAILOVER_TIMEOUT){
 				if($this->verbose){
-					echo "Cronjob '$this->task_name' is already running and has been running for ".(time() - $row['is_running_time'])." secs! Failover sleep ".self::FAILOVER_SLEEP." secs...\n";
+					echo "Failover timeout\n";
 				}
 				
-				sleep(self::FAILOVER_SLEEP);
+				break;
 			}
+			
+			if($this->verbose){
+				echo "Cronjob '$this->task_name' is already running and has been running for ".(time() - $row['is_running_time'])." secs! Failover sleep ".self::FAILOVER_SLEEP." secs...\n";
+			}
+			
+			sleep(self::FAILOVER_SLEEP);
 		}
 	}
 	
@@ -182,6 +180,10 @@ class Cronjob extends Argv {
 		if($this->verbose){
 			echo "Cronjob completed in $time_exec secs!\n";
 		}
+	}
+	
+	private function error_format(\Throwable $e): string{
+		return $this->task_name.': '.\Log\Err::format($e);
 	}
 	
 	private function update_cronjob(array $update){

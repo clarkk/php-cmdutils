@@ -65,7 +65,8 @@ class Cronjob extends Argv {
 				\dbdata\DB::rollback();
 			}
 			
-			$this->log_err($this->error_format($e));
+			$error = $this->error_format($e);
+			$this->log_err($error);
 			
 			echo "$error\n";
 		}

@@ -1,5 +1,5 @@
 # php-utils
-A powerful bundle of basic system (Linux) utility tools for your PHP web-application
+A powerful bundle of basic system (Linux) utility tools for your PHP web-application included with `cpp-proc` https://github.com/clarkk/cpp-proc
 
 ## Classes
 - [\Utils\Cmd\Cmd](#utilscmdcmd)

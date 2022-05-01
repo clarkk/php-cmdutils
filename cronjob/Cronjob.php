@@ -40,21 +40,21 @@ class Cronjob extends Argv {
 		}
 		//	Catch DB errors
 		catch(\dbdata\Error_db $e){
-			$code 	= $e->getCode();
-			$error 	= 'MYSQL error: '.$code.'; '.$this->error_format($e);
+			$code 			= $e->getCode();
+			$prefix_error 	= "MYSQL error: $code; ".$this->task_name.': ';
 			
 			\dbdata\DB::rollback();
 			
 			switch($code){
 				//	MySQL server has gone away
 				case 2006:
-					$this->log_err($error);
+					$error = \Log\Err::fatal($e, self::DB_TABLE, $prefix_error);
 					
 					echo "$error\n";
 					break;
 				
 				default:
-					$this->log_err($error);
+					$error = \Log\Err::fatal($e, self::DB_TABLE, $prefix_error);
 					
 					echo "$error\n";
 			}
@@ -65,8 +65,8 @@ class Cronjob extends Argv {
 				\dbdata\DB::rollback();
 			}
 			
-			$error = $this->error_format($e);
-			$this->log_err($error);
+			$prefix_error 	= $this->task_name.': ';
+			$error 			= \Log\Err::fatal($e, self::DB_TABLE, $prefix_error);
 			
 			echo "$error\n";
 		}
@@ -185,14 +185,6 @@ class Cronjob extends Argv {
 		if($this->verbose){
 			echo "Cronjob completed in $time_exec secs!\n";
 		}
-	}
-	
-	private function error_format(\Throwable $e): string{
-		return $this->task_name.': '.\Log\Err::format($e);
-	}
-	
-	private function log_err(string $error){
-		\Log\Log::err(self::DB_TABLE, $error, false);
 	}
 	
 	private function update_cronjob(array $update){

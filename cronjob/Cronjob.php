@@ -11,6 +11,7 @@ class Cronjob extends Argv {
 	
 	private $cronjob_id;
 	private $cronjob_file;
+	private $cronjob_time_start;
 	
 	private $Task;
 	
@@ -45,18 +46,15 @@ class Cronjob extends Argv {
 			
 			\dbdata\DB::rollback();
 			
+			$error = \Log\Err::fatal($e, self::DB_TABLE, $prefix_error);
+			
+			echo "$error\n";
+			
 			switch($code){
 				//	MySQL server has gone away
 				case 2006:
-					$error = \Log\Err::fatal($e, self::DB_TABLE, $prefix_error);
-					
-					echo "$error\n";
+					$this->end_gracefully($use_db);
 					break;
-				
-				default:
-					$error = \Log\Err::fatal($e, self::DB_TABLE, $prefix_error);
-					
-					echo "$error\n";
 			}
 		}
 		//	Catch fatal errors (Leave cronjob running in DB)
@@ -129,14 +127,14 @@ class Cronjob extends Argv {
 			echo "Cronjob '$this->task_name' starts executing (pid: $pid)...\n";
 		}
 		
-		$time_start = time();
+		$this->cronjob_time_start = time();
 		
 		if($use_db){
 			$this->update_cronjob([
-				'is_running_time'		=> $time_start,
+				'is_running_time'		=> $this->cronjob_time_start,
 				'is_failure_notified'	=> 0,
-				'time'					=> $time_start,
-				'time_offset'			=> $time_start - $failover_start,
+				'time'					=> $this->cronjob_time_start,
+				'time_offset'			=> $this->cronjob_time_start - $failover_start,
 				'ppid'					=> posix_getppid(),
 				'pid'					=> $pid
 			]);
@@ -158,7 +156,11 @@ class Cronjob extends Argv {
 		$this->Task = new $class_name($this->task_name, $this->verbose);
 		$this->Task->exec();
 		
-		$time_exec = time() - $time_start;
+		$this->end_gracefully($use_db);
+	}
+	
+	private function end_gracefully(bool $use_db){
+		$time_exec = time() - $this->cronjob_time_start;
 		
 		if($use_db){
 			//	Commit transaction for the task
@@ -174,12 +176,12 @@ class Cronjob extends Argv {
 			
 			(new \dbdata\Put)->exec('log_cronjob', 0, [
 				'cronjob_id'	=> $this->cronjob_id,
-				'time'			=> $time_start,
+				'time'			=> $this->cronjob_time_start,
 				'time_exec'		=> $time_exec
 			]);
 		}
 		else{
-			\Log\Log::log(self::DB_TABLE, $this->task_name.' started '.\Time\Time::timestamp($time_start, true).' ('.$time_exec.' secs)');
+			\Log\Log::log(self::DB_TABLE, $this->task_name.' started '.\Time\Time::timestamp($this->cronjob_time_start, true).' ('.$time_exec.' secs)');
 		}
 		
 		if($this->verbose){

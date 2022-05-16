@@ -80,6 +80,6 @@ class Status {
 			return true;
 		}
 		
-		return abs($is_running_time - $time_offset - $master['start']) > 1;
+		return abs($is_running_time - $time_offset - $master['start']) > 2;
 	}
 }

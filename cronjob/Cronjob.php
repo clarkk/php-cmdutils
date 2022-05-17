@@ -53,7 +53,7 @@ class Cronjob extends Argv {
 			switch($code){
 				//	MySQL server has gone away
 				case 2006:
-					$this->end_gracefully($use_db);
+					\dbdata\DB::reconnect();
 					break;
 			}
 		}

@@ -12,6 +12,7 @@ class Cronjob extends Argv {
 	private $cronjob_id;
 	private $cronjob_file;
 	private $cronjob_time_start;
+	private $cronjob_db_ended 		= false;
 	
 	private $Task;
 	
@@ -164,6 +165,10 @@ class Cronjob extends Argv {
 		$time_exec = time() - $this->cronjob_time_start;
 		
 		if($use_db){
+			if($this->cronjob_db_ended){
+				return;
+			}
+			
 			//	Commit transaction for the task
 			\dbdata\DB::commit();
 			
@@ -180,6 +185,8 @@ class Cronjob extends Argv {
 				'time'			=> $this->cronjob_time_start,
 				'time_exec'		=> $time_exec
 			]);
+			
+			$this->cronjob_db_ended = true;
 		}
 		else{
 			\Log\Log::log(self::DB_TABLE, $this->task_name.' started '.\Time\Time::timestamp($this->cronjob_time_start, true).' ('.$time_exec.' secs)');

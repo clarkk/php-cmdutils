@@ -339,7 +339,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 		else{
 			$tmp_path 		= $this->task_tmp_path($this->workers[$proc_slot]['paths']['tmp'], $data);
 			$exitcode 		= $tmp_path.'/exitcode';
-			$cmd_tmp_path 	= "mkdir $tmp_path;".($file ? "scp root@".SUBHOST.'.'.HOST.":$file ".$tmp_path.'/'.basename($file).';' : '');
+			$cmd_tmp_path 	= "mkdir $tmp_path;".($file ? "scp root@".SLD.'.'.TLD.":$file ".$tmp_path.'/'.basename($file).';' : '');
 			
 			$ssh = $this->ssh_pool($proc_slot);
 			$ssh->exec(\Utils\Commands::group_subprocs($this->task_php_command($this->workers[$proc_slot]['paths']['proc'], $tmp_path, $data, $file), $cmd_tmp_path, $exitcode, true));

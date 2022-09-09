@@ -4,6 +4,7 @@ namespace Utils\Cronjob;
 
 abstract class Task extends \Utils\Verbose {
 	protected $task_name;
+	protected $session_start = false;
 	
 	private $time_start;
 	
@@ -14,6 +15,10 @@ abstract class Task extends \Utils\Verbose {
 		$this->time_start 	= time();
 		
 		parent::__construct();
+		
+		if($this->session_start){
+			session_start();
+		}
 	}
 	
 	protected function start_task(){

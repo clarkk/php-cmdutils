@@ -125,6 +125,15 @@ class Cronjob extends Argv {
 	private function exec(bool $use_db, int $failover_start=0){
 		$pid = posix_getpid();
 		
+		require_once $this->cronjob_file;
+		
+		$class_name = '\Utils\Cronjob\\'.ucfirst($this->task_name);
+		if(!class_exists($class_name)){
+			throw new Error('Cronjob class missing: '.$class_name);
+		}
+		
+		$this->Task = new $class_name($this->task_name, $this->verbose);
+		
 		if($this->verbose){
 			echo "Cronjob '$this->task_name' starts executing (pid: $pid)...\n";
 		}
@@ -148,14 +157,6 @@ class Cronjob extends Argv {
 			\dbdata\DB::begin();
 		}
 		
-		require_once $this->cronjob_file;
-		
-		$class_name = '\Utils\Cronjob\\'.ucfirst($this->task_name);
-		if(!class_exists($class_name)){
-			throw new Error('Cronjob class missing: '.$class_name);
-		}
-		
-		$this->Task = new $class_name($this->task_name, $this->verbose);
 		$this->Task->exec();
 		
 		$this->end_gracefully($use_db);

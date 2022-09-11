@@ -7,13 +7,14 @@
 namespace Utils\WSS;
 
 abstract class Server extends \Utils\Verbose {
+	protected $clients 			= [];
+	
 	private $host 				= '0.0.0.0';
 	private $port;
 	private $stream_select_timeout;
 	
 	private $server_socket;
 	private $client_sockets 	= [];
-	private $clients 			= [];
 	
 	private const SOCKET_SERVER = 'server';
 	
@@ -44,8 +45,6 @@ abstract class Server extends \Utils\Verbose {
 	public function run(): void{
 		$this->listen();
 		
-		$i = 0;
-		
 		while(true){
 			if($this->verbose){
 				$this->verbose('Check push query', self::COLOR_GRAY);
@@ -70,9 +69,6 @@ abstract class Server extends \Utils\Verbose {
 			}
 			
 			$this->read_messages($sockets);
-			
-			//	breaking just for testing purposes
-			if(++$i > 10) break;
 		}
 	}
 	

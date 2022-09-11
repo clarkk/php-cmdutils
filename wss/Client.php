@@ -76,6 +76,10 @@ class Client extends Protocol {
 		$this->data[$key] = $value;
 	}
 	
+	public function update_data(array $data): void{
+		$this->data = $data;
+	}
+	
 	public function data(?string $key=null){
 		return is_null($key) ? $this->data : $this->data[$key];
 	}

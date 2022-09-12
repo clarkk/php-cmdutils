@@ -89,7 +89,7 @@ class Client extends Protocol {
 		]);
 	}
 	
-	public function set_data(string $key, string $value): void{
+	public function set_data(string $key, $value): void{
 		$this->data[$key] = $value;
 	}
 	

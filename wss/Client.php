@@ -72,7 +72,7 @@ class Client extends Protocol {
 			return;
 		}
 		
-		$type 		= self::DATA_TYPE;
+		$type 		= self::TYPE_TEXT;
 		$message 	= json_encode($message);
 		
 		if($this->verbose){

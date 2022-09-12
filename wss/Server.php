@@ -90,7 +90,7 @@ abstract class Server extends \Utils\Verbose {
 				$client = $this->clients[$socket_id];
 				if(!$data = $client->receive()){
 					if($this->verbose){
-						$this->verbose('-> Chunked data buffered', self::COLOR_BLUE);
+						$this->verbose("#$socket_id -> Chunked data buffered", self::COLOR_BLUE);
 					}
 					
 					continue;

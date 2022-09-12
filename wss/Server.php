@@ -97,7 +97,7 @@ abstract class Server extends \Utils\Verbose {
 				}
 				
 				if($this->verbose){
-					$this->verbose('-> '.$data[Protocol::DATA_TYPE]." #$socket_id", self::COLOR_BLUE);
+					$this->verbose("#$socket_id ".$data[Protocol::DATA_TYPE]." ->", self::COLOR_BLUE);
 				}
 				
 				switch($data[Protocol::DATA_TYPE]){
@@ -140,7 +140,7 @@ abstract class Server extends \Utils\Verbose {
 		}
 		
 		$socket_id 	= get_resource_id($socket);
-		$client 	= new Client($socket, $socket_id);
+		$client 	= new Client($this->task_name, $this->verbose, $socket, $socket_id);
 		
 		if(!$connection = $client->handshake()){
 			if($this->verbose){

@@ -2,7 +2,7 @@
 
 namespace Utils\WSS;
 
-abstract class Protocol {
+abstract class Protocol extends \Utils\Verbose {
 	const TYPE_PING				= 'ping';
 	const TYPE_PONG				= 'pong';
 	const TYPE_TEXT 			= 'text';

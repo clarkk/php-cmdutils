@@ -17,7 +17,10 @@ class Client extends Protocol {
 	
 	const CRLF 								= "\r\n";
 	
-	public function __construct($socket, int $socket_id){
+	public function __construct(string $task_name, int $verbose, $socket, int $socket_id){
+		$this->task_name 	= $task_name;
+		$this->verbose 		= $verbose;
+		
 		$headers = fread($socket, self::HEADER_BYTES_READ);
 		if(!preg_match('/GET (.*?) /', $headers, $match)){
 			return;
@@ -34,6 +37,8 @@ class Client extends Protocol {
 		if(preg_match('/^Sec-WebSocket-Version: (.*)\R/m', $headers, $match)){
 			$this->version 	= trim($match[1]);
 		}
+		
+		parent::__construct();
 	}
 	
 	public function handshake(): ?array{
@@ -63,7 +68,19 @@ class Client extends Protocol {
 	}
 	
 	public function send(array $message): void{
-		fwrite($this->socket, $this->encode(json_encode($message)));
+		if(!$message){
+			return;
+		}
+		
+		$type 		= self::DATA_TYPE;
+		$message 	= json_encode($message);
+		
+		if($this->verbose){
+			$this->verbose("#$this->socket_id <- $type", self::COLOR_BLUE);
+			$this->verbose($message, self::COLOR_PURPLE);
+		}
+		
+		fwrite($this->socket, $this->encode($message, $type));
 	}
 	
 	public function error(string $error): void{

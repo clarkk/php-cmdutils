@@ -158,6 +158,11 @@ abstract class Server extends \Utils\Verbose {
 		}
 		
 		$this->onopen($client);
+		
+		$sockets = [$this->server_socket];
+		if(stream_select($sockets, $write, $except, 0)){
+			$this->new_client();
+		}
 	}
 	
 	private function listen(): void{

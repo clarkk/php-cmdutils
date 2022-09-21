@@ -167,15 +167,15 @@ class Websocket_server extends \Utils\WSS\Server {
     parent::__construct($task_name, $verbose);
   }
   
-  public function onopen(Client $client): void{
+  public function onopen(\Utils\WSS\Client $client): void{
     // A new connection was established
   }
   
-  public function onmessage(Client $client, array $message): void{
+  public function onmessage(\Utils\WSS\Client $client, array $message): void{
     // The client sent a message to the server (The message from the client must be JSON encoded)
   }
   
-  public function onclose(Client $client): void{
+  public function onclose(\Utils\WSS\Client $client): void{
     // The client closed the connection
   }
   

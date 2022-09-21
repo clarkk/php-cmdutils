@@ -157,7 +157,7 @@ $SSH->disconnect();
 ```
 
 ## \Utils\WSS\Server
-Websocket server with **Fibers** (introduced in PHP 8.1) implemented with **asynchronous and non-blocking I/O calls**.
+High performance websocket server with **Fibers** (introduced in PHP 8.1) implemented with **asynchronous and non-blocking I/O calls**.
 It's designed with an interruptible main event loop, and it "spawns" new fibers/threads (in the same process) on each socket read/write.
 
 ### Run websocket server

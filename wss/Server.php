@@ -9,6 +9,7 @@ namespace Utils\WSS;
 abstract class Server extends \Utils\Verbose {
 	protected $clients 			= [];
 	
+	private $num_main_fibers	= 0;
 	private $fibers 			= [];
 	
 	private $host 				= '0.0.0.0';
@@ -16,6 +17,8 @@ abstract class Server extends \Utils\Verbose {
 	
 	private $server_socket;
 	private $client_sockets 	= [];
+	
+	private $loop_idle_sleep 	= 1;
 	
 	const TIMEOUT_WRITE			= 30;
 	const TIMEOUT_READ 			= 30;
@@ -114,6 +117,8 @@ abstract class Server extends \Utils\Verbose {
 			$push
 		];
 		
+		$this->num_main_fibers = count($this->fibers);
+		
 		foreach($this->fibers as $fiber){
 			$fiber->start();
 		}
@@ -136,7 +141,24 @@ abstract class Server extends \Utils\Verbose {
 					$fiber->resume();
 				}
 			}
+			
+			//	Sleep if no fibers to process
+			if(!$this->is_processing_fibers()){
+				if($this->verbose){
+					$this->verbose('Sleep '.$this->loop_idle_sleep.' secs...', self::COLOR_GRAY);
+				}
+				
+				sleep($this->loop_idle_sleep);
+			}
+			/*else{
+				//	Sleep 0.1 sec
+				usleep(100000);
+			}*/
 		}
+	}
+	
+	protected function is_processing_fibers(): bool{
+		return count($this->fibers) > $this->num_main_fibers;
 	}
 	
 	protected function send(Client $client, array $message){

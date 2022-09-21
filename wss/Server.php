@@ -9,21 +9,24 @@ namespace Utils\WSS;
 abstract class Server extends \Utils\Verbose {
 	protected $clients 			= [];
 	
+	private $fibers 			= [];
+	
 	private $host 				= '0.0.0.0';
 	private $port;
-	private $stream_select_timeout;
 	
 	private $server_socket;
 	private $client_sockets 	= [];
 	
-	private const SOCKET_SERVER = 'server';
+	const TIMEOUT_WRITE			= 30;
+	const TIMEOUT_READ 			= 30;
+	const BUFFER_WRITE 			= 1024 * 5;
+	const BUFFER_READ 			= 1024 * 5;
 	
-	public function __construct(string $task_name, int $verbose, int $port=9000, int $stream_select_timeout=1){
-		$this->task_name 				= $task_name;
-		$this->verbose 					= $verbose;
+	public function __construct(string $task_name, int $verbose, int $port=9000){
+		$this->task_name 		= $task_name;
+		$this->verbose 			= $verbose;
 		
-		$this->port 					= $port;
-		$this->stream_select_timeout 	= $stream_select_timeout;
+		$this->port 			= $port;
 		
 		ini_set('default_socket_timeout', 5);
 		
@@ -45,31 +48,143 @@ abstract class Server extends \Utils\Verbose {
 	public function run(): void{
 		$this->listen();
 		
+		$new_clients = new \Fiber(function(): void{
+			while(true){
+				$read = [$this->server_socket];
+				while(true){
+					if(!stream_select($read, $write, $except, 0)){
+						break;
+					}
+					
+					$socket 	= stream_socket_accept($this->server_socket, 0);
+					$client 	= new Client($this->task_name, $this->verbose, $socket);
+					stream_set_blocking($socket, false);
+					
+					if(!$handshake = $client->handshake()){
+						if($this->verbose){
+							$this->verbose('Client failed to connect', self::COLOR_RED);
+						}
+						
+						continue;
+					}
+					
+					$this->write($socket, $handshake, function() use ($socket, $client): void{
+						$socket_id 							= $client->socket_id();
+						$this->clients[$socket_id]			= $client;
+						$this->client_sockets[$socket_id]	= $socket;
+						
+						if($this->verbose){
+							$connection = $client->connection();
+							$this->verbose("New client #$socket_id\nkey: ".$connection['key']."\nversion: ".$connection['version']."\npath: ".$connection['path'], self::COLOR_GREEN);
+						}
+						
+						$this->onopen($client);
+					});
+				}
+				
+				\Fiber::suspend();
+			}
+		});
+		
+		$read = new \Fiber(function(): void{
+			while(true){
+				if($read = $this->client_sockets){
+					if(stream_select($read, $write, $except, 0)){
+						foreach($read as $socket_id => $socket){
+							$this->read($socket, $this->clients[$socket_id]);
+						}
+					}
+				}
+				
+				\Fiber::suspend();
+			}
+		});
+		
+		$push = new \Fiber(function(): void{
+			while(true){
+				$this->push();
+				
+				\Fiber::suspend();
+			}
+		});
+		
+		$this->fibers = [
+			$new_clients,
+			$read,
+			$push
+		];
+		
+		foreach($this->fibers as $fiber){
+			$fiber->start();
+		}
+		
+		$time_status = time();
 		while(true){
 			if($this->verbose){
-				$this->verbose('Check push query', self::COLOR_GRAY);
+				$time = time();
+				if($time - $time_status > 10){
+					$this->verbose('Clients: '.count($this->client_sockets).', Fibers: '.count($this->fibers), self::COLOR_BLUE);
+					$time_status = $time;
+				}
 			}
 			
-			$this->push();
-			
-			$sockets = $this->client_sockets;
-			$sockets[self::SOCKET_SERVER] = &$this->server_socket;
+			foreach($this->fibers as $i => $fiber){
+				if($fiber->isTerminated()){
+					unset($this->fibers[$i]);
+				}
+				elseif($fiber->isSuspended()){
+					$fiber->resume();
+				}
+			}
+		}
+	}
+	
+	protected function send(Client $client, array $message){
+		if(!$message){
+			return;
+		}
+		
+		$type 		= Protocol::TYPE_TEXT;
+		$message 	= json_encode($message);
+		
+		if($this->verbose){
+			$this->verbose('#'.$client->socket_id()." <- $type", self::COLOR_BLUE);
+			$this->verbose($message, self::COLOR_PURPLE);
+		}
+		
+		try{
+			$data = $client->encode($message, $type);
+		}
+		catch(Protocol_error $e){
+			$error = $e->getMessage();
 			
 			if($this->verbose){
-				$this->verbose('Waiting for incoming socket data (Clients: '.(count($sockets)-1).')', self::COLOR_GRAY);
+				$this->verbose($error, self::COLOR_RED);
 			}
 			
-			if(!stream_select($sockets, $write, $except, $this->stream_select_timeout)){
-				continue;
-			}
-			
-			if(!empty($sockets[self::SOCKET_SERVER])){
-				$this->new_client();
-				unset($sockets[self::SOCKET_SERVER]);
-			}
-			
-			$this->read_messages($sockets);
+			\Log\Err::fatal($e);
 		}
+		
+		$this->write($client->socket(), $data);
+	}
+	
+	public function error(Client $client, string $error): void{
+		try{
+			$data = $client->encode(json_encode([
+				'error' => $error
+			]));
+		}
+		catch(Protocol_error $e){
+			$error = $e->getMessage();
+			
+			if($this->verbose){
+				$this->verbose($error, self::COLOR_RED);
+			}
+			
+			\Log\Err::fatal($e);
+		}
+		
+		$this->write($client->socket(), $data);
 	}
 	
 	protected function close(Client $client, bool $send=false): void{
@@ -84,90 +199,106 @@ abstract class Server extends \Utils\Verbose {
 		unset($this->clients[$socket_id], $this->client_sockets[$socket_id]);
 	}
 	
-	private function read_messages(array $sockets): void{
-		foreach($sockets as $socket_id => $socket){
-			try{
-				$client = $this->clients[$socket_id];
-				if(!$data = $client->receive()){
-					if($this->verbose){
-						$this->verbose("#$socket_id -> Chunked data buffered", self::COLOR_BLUE);
-					}
-					
-					continue;
-				}
-				
-				if($this->verbose){
-					$this->verbose("#$socket_id ".$data[Protocol::DATA_TYPE]." ->", self::COLOR_BLUE);
-				}
-				
-				switch($data[Protocol::DATA_TYPE]){
-					case Protocol::TYPE_PING:
-						$this->onping($client);
-						break;
-					
-					case Protocol::TYPE_PONG:
-						$this->onpong($client);
-						break;
-					
-					case Protocol::TYPE_TEXT:
-						if($this->verbose){
-							$this->verbose($data[Protocol::DATA_MESSAGE], self::COLOR_PURPLE);
+	private function read($socket, Client $client){
+		$fiber = new \Fiber(function($socket, Client $client): void{
+			$buffer = '';
+			$read 	= [$socket];
+			$write 	= [];
+			
+			$time = time();
+			do{
+				if(stream_select($read, $write, $except, 0)){
+					if(($data = fread($socket, self::BUFFER_READ)) !== false){
+						try{
+							if($message = $client->buffer($data)){
+								if($this->verbose){
+									$this->verbose('#'.$client->socket_id().' '.$message[Protocol::DATA_TYPE].' ->', self::COLOR_BLUE);
+								}
+								
+								switch($message[Protocol::DATA_TYPE]){
+									case Protocol::TYPE_PING:
+										$this->onping($client);
+										break;
+									
+									case Protocol::TYPE_PONG:
+										$this->onpong($client);
+										break;
+									
+									case Protocol::TYPE_TEXT:
+										if($this->verbose){
+											$this->verbose($message[Protocol::DATA_MESSAGE], self::COLOR_PURPLE);
+										}
+										
+										$this->onmessage($client, json_decode($message[Protocol::DATA_MESSAGE], true));
+										break;
+									
+									case Protocol::TYPE_CLOSE:
+										$this->close($client);
+										break;
+								}
+								
+								return;
+							}
+							
+							if($this->verbose){
+								$this->verbose('#'.$client->socket_id().' -> Chunked data buffered', self::COLOR_BLUE);
+							}
 						}
-						
-						$this->onmessage($client, json_decode($data[Protocol::DATA_MESSAGE], true));
-						break;
-					
-					case Protocol::TYPE_CLOSE:
-						$this->close($client);
-						break;
-				}
-			}
-			catch(Protocol_error $e){
-				$error = $e->getMessage();
-				
-				if($this->verbose){
-					$this->verbose($error, self::COLOR_RED);
+						catch(Protocol_error $e){
+							$error = $e->getMessage();
+							
+							if($this->verbose){
+								$this->verbose($error, self::COLOR_RED);
+							}
+							
+							$this->error($client, $error);
+						}
+					}
 				}
 				
-				$client->error($error);
+				\Fiber::suspend();
 			}
-		}
+			while(time() - $time <= self::TIMEOUT_READ);
+		});
+		
+		$fiber->start($socket, $client);
+		$this->fibers[] = $fiber;
 	}
 	
-	private function new_client(): void{
-		if(!$socket = stream_socket_accept($this->server_socket, 0)){
+	private function write($socket, string $data, $success=null){
+		if(!$data){
 			return;
 		}
 		
-		$socket_id 	= get_resource_id($socket);
-		$client 	= new Client($this->task_name, $this->verbose, $socket, $socket_id);
-		
-		if(!$connection = $client->handshake()){
-			if($this->verbose){
-				$this->verbose('Client failed to connect', self::COLOR_RED);
-			}
+		$fiber = new \Fiber(function($socket, string $data, $success): void{
+			$read 	= [];
+			$write 	= [$socket];
 			
-			return;
-		}
+			$time = time();
+			do{
+				if(stream_select($read, $write, $except, 0)){
+					if(fwrite($socket, $data, self::BUFFER_WRITE) !== false){
+						if(($data = substr($data, self::BUFFER_WRITE)) === ''){
+							if($success){
+								$success();
+							}
+							return;
+						}
+					}
+				}
+				
+				\Fiber::suspend();
+			}
+			while(time() - $time <= self::TIMEOUT_WRITE);
+		});
 		
-		$this->clients[$socket_id]			= $client;
-		$this->client_sockets[$socket_id]	= $socket;
-		
-		if($this->verbose){
-			$this->verbose("New client #$socket_id\nkey: ".$connection['key']."\nversion: ".$connection['version']."\npath: ".$connection['path'], self::COLOR_GREEN);
-		}
-		
-		$this->onopen($client);
-		
-		$sockets = [$this->server_socket];
-		if(stream_select($sockets, $write, $except, 0)){
-			$this->new_client();
-		}
+		$fiber->start($socket, $data, $success);
+		$this->fibers[] = $fiber;
 	}
 	
 	private function listen(): void{
-		if(!$this->server_socket = stream_socket_server("tcp://$this->host:$this->port", $errno, $message)){
-			$error = "Could not bind to socket: $errno - $message";
+		if(!$this->server_socket = stream_socket_server("tcp://$this->host:$this->port", $errno, $error)){
+			$error = "Could not bind to socket: $errno - $error";
 			
 			if($this->verbose){
 				$this->verbose($error, self::COLOR_RED);
@@ -175,6 +306,8 @@ abstract class Server extends \Utils\Verbose {
 			
 			throw new Socket_error($error);
 		}
+		
+		stream_set_blocking($this->server_socket, false);
 		
 		if($this->verbose){
 			$this->verbose("WS server started listening on: $this->host:$this->port", self::COLOR_GREEN);

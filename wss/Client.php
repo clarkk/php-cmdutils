@@ -8,16 +8,11 @@ class Client extends Protocol {
 	private $path;
 	private $key;
 	private $version;
-	private $data = [];
+	private $data 			= [];
 	
-	const HEADER_WEBSOCKET_ACCEPT_HASH		= '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
+	const HEADER_BYTES_READ	= 1024;
 	
-	const HEADER_BYTES_READ					= 1024;
-	const MAX_BYTES_READ 					= 1024 * 8;
-	
-	const CRLF 								= "\r\n";
-	
-	public function __construct(string $task_name, int $verbose, $socket, int $socket_id){
+	public function __construct(string $task_name, int $verbose, $socket){
 		$this->task_name 	= $task_name;
 		$this->verbose 		= $verbose;
 		
@@ -27,7 +22,7 @@ class Client extends Protocol {
 		}
 		
 		$this->socket 		= $socket;
-		$this->socket_id 	= $socket_id;
+		$this->socket_id 	= get_resource_id($socket);
 		$this->path 		= trim($match[1]);
 		
 		if(preg_match('/^Sec-WebSocket-Key: (.*)\R/m', $headers, $match)){
@@ -41,16 +36,11 @@ class Client extends Protocol {
 		parent::__construct();
 	}
 	
-	public function handshake(): ?array{
-		if(!$this->key){
-			return null;
-		}
-		
-		fwrite($this->socket, 'HTTP/1.1 101 Web Socket Protocol Handshake'.self::CRLF
-			.'Upgrade: websocket'.self::CRLF
-			.'Connection: Upgrade'.self::CRLF
-			.'Sec-WebSocket-Accept:  '.base64_encode(sha1($this->key.self::HEADER_WEBSOCKET_ACCEPT_HASH, true)).self::CRLF.self::CRLF);
-		
+	public function handshake(): ?string{
+		return $this->key ? $this->http_handshake($this->key) : null;
+	}
+	
+	public function connection(): array{
 		return [
 			'key'		=> $this->key,
 			'version'	=> $this->version,
@@ -62,31 +52,13 @@ class Client extends Protocol {
 		return $this->socket_id;
 	}
 	
-	public function receive(): ?array{
-		$this->buffer .= fread($this->socket, self::MAX_BYTES_READ);
+	public function socket(){
+		return $this->socket;
+	}
+	
+	public function buffer(string $data): ?array{
+		$this->buffer .= $data;
 		return $this->decode();
-	}
-	
-	public function send(array $message): void{
-		if(!$message){
-			return;
-		}
-		
-		$type 		= self::TYPE_TEXT;
-		$message 	= json_encode($message);
-		
-		if($this->verbose){
-			$this->verbose("#$this->socket_id <- $type", self::COLOR_BLUE);
-			$this->verbose($message, self::COLOR_PURPLE);
-		}
-		
-		fwrite($this->socket, $this->encode($message, $type));
-	}
-	
-	public function error(string $error): void{
-		$this->send([
-			'error' => $error
-		]);
 	}
 	
 	public function set_data(string $key, $value): void{

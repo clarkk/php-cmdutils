@@ -3,31 +3,71 @@
 namespace Utils\WSS;
 
 abstract class Protocol extends \Utils\Verbose {
-	const TYPE_PING				= 'ping';
-	const TYPE_PONG				= 'pong';
-	const TYPE_TEXT 			= 'text';
-	const TYPE_CLOSE			= 'close';
-	const TYPE_BINARY			= 'binary';
-	const TYPE_CONTINUATION		= 'continuation';
+	const TYPE_PING						= 'ping';
+	const TYPE_PONG						= 'pong';
+	const TYPE_TEXT 					= 'text';
+	const TYPE_CLOSE					= 'close';
+	const TYPE_BINARY					= 'binary';
+	const TYPE_CONTINUATION				= 'continuation';
 	
-	const DECODE_TEXT			= 1;
-	const DECODE_BINARY 		= 2;
-	const DECODE_CLOSE			= 8;
-	const DECODE_PING			= 9;
-	const DECODE_PONG			= 10;
+	const DECODE_TEXT					= 1;
+	const DECODE_BINARY 				= 2;
+	const DECODE_CLOSE					= 8;
+	const DECODE_PING					= 9;
+	const DECODE_PONG					= 10;
 	
-	const ENCODE_TEXT			= 129;
-	const ENCODE_CLOSE			= 136;
-	const ENCODE_PING 			= 137;
-	const ENCODE_PONG			= 138;
+	const ENCODE_TEXT					= 129;
+	const ENCODE_CLOSE					= 136;
+	const ENCODE_PING 					= 137;
+	const ENCODE_PONG					= 138;
 	
-	const SEND_LIMIT			= 65535;
-	const PAYLOAD_CHUNK 		= 8;
+	const SEND_LIMIT					= 65535;
+	const PAYLOAD_CHUNK 				= 8;
 	
-	const DATA_TYPE 			= 'type';
-	const DATA_MESSAGE 			= 'message';
+	const DATA_TYPE 					= 'type';
+	const DATA_MESSAGE 					= 'message';
 	
-	protected $buffer = '';
+	const HEADER_WEBSOCKET_ACCEPT_HASH	= '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
+	
+	const CRLF 							= "\r\n";
+	
+	protected $buffer 					= '';
+	
+	public function encode(string $message, string $type=self::TYPE_TEXT, bool $masked=false): string{
+		$header = $this->get_encode_type($type);
+		$length = strlen($message);
+		
+		if($length > self::SEND_LIMIT){
+			$binlength = str_split(sprintf('%064b', $length), self::PAYLOAD_CHUNK);
+			$header[1] = $masked ? 255 : 127;
+			
+			for($i=0; $i<8; $i++){
+				$header[$i + 2] = bindec($binlength[$i]);
+			}
+			
+			if($header[2] > 127){
+				throw new Protocol_error('Frame too large');
+			}
+		}
+		elseif($length > 125){
+			$binlength = str_split(sprintf('%016b', $length), self::PAYLOAD_CHUNK);
+			$header[1] = $masked ? 254 : 126;
+			$header[2] = bindec($binlength[0]);
+			$header[3] = bindec($binlength[1]);
+		}
+		else{
+			$header[1] = $masked ? $length + 128 : $length;
+		}
+		
+		return $this->compose_frame($header, $message, $length, $masked);
+	}
+	
+	protected function http_handshake(string $key): string{
+		return 'HTTP/1.1 101 Web Socket Protocol Handshake'.self::CRLF
+			.'Upgrade: websocket'.self::CRLF
+			.'Connection: Upgrade'.self::CRLF
+			.'Sec-WebSocket-Accept:  '.base64_encode(sha1($key.self::HEADER_WEBSOCKET_ACCEPT_HASH, true)).self::CRLF.self::CRLF;
+	}
 	
 	protected function decode(): ?array{
 		if(!$this->buffer){
@@ -94,35 +134,6 @@ abstract class Protocol extends \Utils\Verbose {
 			self::DATA_TYPE		=> $type,
 			self::DATA_MESSAGE	=> $unmasked_data
 		];
-	}
-	
-	protected function encode(string $message, string $type=self::TYPE_TEXT, bool $masked=false): string{
-		$header = $this->get_encode_type($type);
-		$length = strlen($message);
-		
-		if($length > self::SEND_LIMIT){
-			$binlength = str_split(sprintf('%064b', $length), self::PAYLOAD_CHUNK);
-			$header[1] = $masked ? 255 : 127;
-			
-			for($i=0; $i<8; $i++){
-				$header[$i + 2] = bindec($binlength[$i]);
-			}
-			
-			if($header[2] > 127){
-				throw new Protocol_error('Frame too large');
-			}
-		}
-		elseif($length > 125){
-			$binlength = str_split(sprintf('%016b', $length), self::PAYLOAD_CHUNK);
-			$header[1] = $masked ? 254 : 126;
-			$header[2] = bindec($binlength[0]);
-			$header[3] = bindec($binlength[1]);
-		}
-		else{
-			$header[1] = $masked ? $length + 128 : $length;
-		}
-		
-		return $this->compose_frame($header, $message, $length, $masked);
 	}
 	
 	private function compose_frame(array $header, string $message, int $length, bool $masked): string{

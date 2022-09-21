@@ -31,9 +31,50 @@ abstract class Protocol extends \Utils\Verbose {
 	
 	const CRLF 							= "\r\n";
 	
+	protected $key;
 	protected $buffer 					= '';
+	protected $queue 					= [];
 	
-	public function encode(string $message, string $type=self::TYPE_TEXT, bool $masked=false): string{
+	public function is_buffering(): bool{
+		return $this->buffer ? true : false;
+	}
+	
+	public function buffer(string $data): ?array{
+		$this->buffer .= $data;
+		return $this->decode();
+	}
+	
+	public function queue(string $message, string $type){
+		try{
+			$this->queue[] = $this->encode($message, $type);
+		}
+		catch(Protocol_error $e){
+			$error = $e->getMessage();
+			
+			if($this->verbose){
+				$this->verbose($error, self::COLOR_RED);
+			}
+			
+			\Log\Err::fatal($e);
+		}
+	}
+	
+	public function send(): ?string{
+		return array_shift($this->queue);
+	}
+	
+	public function handshake(): ?string{
+		if(!$this->key){
+			return null;
+		}
+		
+		return 'HTTP/1.1 101 Web Socket Protocol Handshake'.self::CRLF
+			.'Upgrade: websocket'.self::CRLF
+			.'Connection: Upgrade'.self::CRLF
+			.'Sec-WebSocket-Accept:  '.base64_encode(sha1($this->key.self::HEADER_WEBSOCKET_ACCEPT_HASH, true)).self::CRLF.self::CRLF;
+	}
+	
+	private function encode(string $message, string $type=self::TYPE_TEXT, bool $masked=false): string{
 		$header = $this->get_encode_type($type);
 		$length = strlen($message);
 		
@@ -62,14 +103,7 @@ abstract class Protocol extends \Utils\Verbose {
 		return $this->compose_frame($header, $message, $length, $masked);
 	}
 	
-	protected function http_handshake(string $key): string{
-		return 'HTTP/1.1 101 Web Socket Protocol Handshake'.self::CRLF
-			.'Upgrade: websocket'.self::CRLF
-			.'Connection: Upgrade'.self::CRLF
-			.'Sec-WebSocket-Accept:  '.base64_encode(sha1($key.self::HEADER_WEBSOCKET_ACCEPT_HASH, true)).self::CRLF.self::CRLF;
-	}
-	
-	protected function decode(): ?array{
+	private function decode(): ?array{
 		if(!$this->buffer){
 			return [
 				self::DATA_TYPE		=> self::TYPE_CLOSE,

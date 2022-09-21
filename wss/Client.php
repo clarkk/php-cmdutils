@@ -6,7 +6,6 @@ class Client extends Protocol {
 	private $socket;
 	private $socket_id;
 	private $path;
-	private $key;
 	private $version;
 	private $data 			= [];
 	
@@ -36,10 +35,6 @@ class Client extends Protocol {
 		parent::__construct();
 	}
 	
-	public function handshake(): ?string{
-		return $this->key ? $this->http_handshake($this->key) : null;
-	}
-	
 	public function connection(): array{
 		return [
 			'key'		=> $this->key,
@@ -54,11 +49,6 @@ class Client extends Protocol {
 	
 	public function socket(){
 		return $this->socket;
-	}
-	
-	public function buffer(string $data): ?array{
-		$this->buffer .= $data;
-		return $this->decode();
 	}
 	
 	public function set_data(string $key, $value): void{

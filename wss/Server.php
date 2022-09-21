@@ -98,7 +98,12 @@ abstract class Server extends \Utils\Verbose {
 				if($read = $this->client_sockets){
 					if(stream_select($read, $write, $except, 0)){
 						foreach($read as $socket_id => $socket){
-							$this->read($socket, $this->clients[$socket_id]);
+							$client = $this->clients[$socket_id];
+							
+							//	Check if another fiber is already reading from the client
+							if(!$client->is_buffering()){
+								$this->read($socket, $client);
+							}
 						}
 					}
 				}
@@ -115,10 +120,24 @@ abstract class Server extends \Utils\Verbose {
 			}
 		});
 		
+		$write = new \Fiber(function():void{
+			while(true){
+				foreach($this->clients as $client){
+					$socket = $client->socket();
+					while($data = $client->send()){
+						$this->write($socket, $data);
+					}
+				}
+				
+				\Fiber::suspend();
+			}
+		});
+		
 		$this->fibers = [
 			$new_clients,
 			$read,
-			$push
+			$push,
+			$write
 		];
 		
 		$this->num_main_fibers = count($this->fibers);
@@ -132,7 +151,7 @@ abstract class Server extends \Utils\Verbose {
 			if($this->verbose){
 				$time = time();
 				if($time - $time_status > 10){
-					$this->verbose('Clients: '.count($this->client_sockets).', Fibers: '.count($this->fibers), self::COLOR_BLUE);
+					$this->verbose('Clients: '.count($this->client_sockets).', Fibers: '.count($this->fibers).' ('.$this->num_main_fibers.')', self::COLOR_BLUE);
 					$time_status = $time;
 				}
 			}
@@ -174,39 +193,17 @@ abstract class Server extends \Utils\Verbose {
 			$this->verbose($message, self::COLOR_PURPLE);
 		}
 		
-		try{
-			$data = $client->encode($message, $type);
-		}
-		catch(Protocol_error $e){
-			$error = $e->getMessage();
-			
-			if($this->verbose){
-				$this->verbose($error, self::COLOR_RED);
-			}
-			
-			\Log\Err::fatal($e);
-		}
-		
-		$this->write($client->socket(), $data);
+		$client->queue($message, $type);
 	}
 	
 	public function error(Client $client, string $error): void{
-		try{
-			$data = $client->encode(json_encode([
-				'error' => $error
-			]));
-		}
-		catch(Protocol_error $e){
-			$error = $e->getMessage();
-			
-			if($this->verbose){
-				$this->verbose($error, self::COLOR_RED);
-			}
-			
-			\Log\Err::fatal($e);
+		if($this->verbose){
+			$this->verbose($error, self::COLOR_RED);
 		}
 		
-		$this->write($client->socket(), $data);
+		$this->send($client, [
+			'error' => $error
+		]);
 	}
 	
 	protected function close(Client $client, bool $send=false): void{
@@ -223,7 +220,6 @@ abstract class Server extends \Utils\Verbose {
 	
 	private function read($socket, Client $client){
 		$fiber = new \Fiber(function($socket, Client $client): void{
-			$buffer = '';
 			$read 	= [$socket];
 			$write 	= [];
 			

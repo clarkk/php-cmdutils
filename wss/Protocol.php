@@ -32,8 +32,8 @@ abstract class Protocol extends \Utils\Verbose {
 	const CRLF 							= "\r\n";
 	
 	protected $key;
-	protected $buffer 					= '';
-	protected $queue 					= [];
+	private $buffer 					= '';
+	private $queue 						= [];
 	
 	public function is_buffering(): bool{
 		return $this->buffer ? true : false;

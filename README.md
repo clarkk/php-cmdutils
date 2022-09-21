@@ -5,6 +5,7 @@ A powerful bundle of basic system (Linux) utility tools for your PHP web-applica
 - [\Utils\Cmd\Cmd](#utilscmdcmd)
 - [\Utils\Net\Net](#utilsnetnet)
 - [\Utils\SSH\SSH](#utilssshssh)
+- [\Utils\WSS\Server](#utilswssserver)
 
 ## \Utils\Cmd\Cmd
 Executes a command line (like "shell_exec" or "exec"), but in a more sophisticated way with **proc_\*** and **stream_\*** functions with more flexibility and feature-rich.
@@ -153,4 +154,46 @@ $SSH->disconnect();
 $SSH = new \Utils\SSH\SSH('root', 'host');
 $SSH->upload('/local/path/to/file', '/remote/path/to/file');
 $SSH->disconnect();
+```
+
+## \Utils\WSS\Server
+Websocket server with **Fibers** (introduced in PHP 8.1) implemented with **asynchronous and non-blocking I/O calls**.
+It's designed with an interruptible main event loop, and it "spawns" new fibers/threads (in the same process) on each socket read/write.
+
+### Run websocket server
+```
+class Websocket_server extends \Utils\WSS\Server {
+  public function __construct(string $task_name, int $verbose){
+    parent::__construct($task_name, $verbose);
+  }
+  
+  public function onopen(Client $client): void{
+    // A new connection was established
+  }
+  
+  public function onmessage(Client $client, array $message): void{
+    // The client sent a message to the server (The message from the client must be JSON encoded)
+  }
+  
+  public function onclose(Client $client): void{
+    // The client closed the connection
+  }
+  
+  public function push(): void{
+    foreach($this->clients as $socket_id => &$client){
+      // Push notifications/messages to the client (The message is JSON encoded before sent)
+      $this->send($client, [
+        'msg' => 'Message to the client'
+      ]);
+    }
+  }
+}
+
+try{
+  $WSS = new Websocket_server('websocket_instance1');
+  $WSS->run();
+}
+catch(\Utils\WSS\Socket_error $e){
+  \Log\Err::fatal($e);
+}
 ```

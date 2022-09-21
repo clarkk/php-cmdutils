@@ -3,6 +3,7 @@
 // https://github.com/arthurkushman/php-wss
 // https://github.com/ghedipunk/PHP-Websockets
 // https://web.archive.org/web/20120918000731/http://srchea.com/blog/2011/12/build-a-real-time-application-using-html5-websockets/
+// https://www.hashbangcode.com/article/fibers-php-81
 
 namespace Utils\WSS;
 

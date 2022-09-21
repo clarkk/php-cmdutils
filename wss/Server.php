@@ -18,12 +18,14 @@ abstract class Server extends \Utils\Verbose {
 	private $server_socket;
 	private $client_sockets 	= [];
 	
-	private $loop_idle_sleep 	= 1;
+	private $loop_idle_sleep 	= 0.5;
 	
 	const TIMEOUT_WRITE			= 30;
 	const TIMEOUT_READ 			= 30;
 	const BUFFER_WRITE 			= 1024 * 5;
 	const BUFFER_READ 			= 1024 * 5;
+	
+	const USEC 					= 1000000;
 	
 	public function __construct(string $task_name, int $verbose, int $port=9000){
 		$this->task_name 		= $task_name;
@@ -49,6 +51,8 @@ abstract class Server extends \Utils\Verbose {
 	abstract public function push(): void;
 	
 	public function run(): void{
+		$this->loop_idle_sleep *= self::USEC;
+		
 		$this->listen();
 		
 		$new_clients = new \Fiber(function(): void{
@@ -145,15 +149,11 @@ abstract class Server extends \Utils\Verbose {
 			//	Sleep if no fibers to process
 			if(!$this->is_processing_fibers()){
 				if($this->verbose){
-					$this->verbose('Sleep '.$this->loop_idle_sleep.' secs...', self::COLOR_GRAY);
+					$this->verbose('Sleep '.($this->loop_idle_sleep / self::USEC).' secs...', self::COLOR_GRAY);
 				}
 				
-				sleep($this->loop_idle_sleep);
+				usleep($this->loop_idle_sleep);
 			}
-			/*else{
-				//	Sleep 0.1 sec
-				usleep(100000);
-			}*/
 		}
 	}
 	

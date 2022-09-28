@@ -11,7 +11,7 @@ class Cache {
 		$this->redis->auth($auth);
 	}
 	
-	public function write(Lists $buffer): void{
+	public function write($buffer): void{
 		$buffer->send($this->redis);
 	}
 	

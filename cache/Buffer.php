@@ -31,8 +31,11 @@ class Buffer {
 				
 				$list[$data[$group]][$data['id']] = $data;
 			}
-			else{
+			elseif(!empty($data['id'])){
 				$list[$data['id']] = $data;
+			}
+			else{
+				$list[] = $data;
 			}
 		}
 		

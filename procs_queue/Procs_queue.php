@@ -152,16 +152,10 @@ abstract class Procs_queue extends \Utils\Verbose {
 	
 	public function start_redis(string $auth, string $abort_list): self{
 		try{
-			$this->redis = new \Redis;
-			if(!$this->redis->connect('127.0.0.1')){
-				throw new \RedisException('Connecting to server failed');
-			}
+			$cache = new \Utils\Cache\Cache($auth);
+			$this->redis = $cache->redis();
 			
-			if(!$this->redis->auth($auth)){
-				throw new \RedisException('Authentication failed');
-			}
-			
-			$this->redis_abort_list = $abort_list;
+			$this->redis_abort_list = new \Utils\Cache\Buffer($abort_list);
 			
 			if($this->verbose){
 				$this->verbose('Redis abort list \''.$abort_list.'\' connected', self::COLOR_GREEN);
@@ -287,20 +281,18 @@ abstract class Procs_queue extends \Utils\Verbose {
 	}
 	
 	private function kill_aborted_tasks(){
-		if($this->redis && $this->redis->lLen($this->redis_abort_list)){
-			if($entries = $this->redis->multi()->lRange($this->redis_abort_list, 0, -1)->del($this->redis_abort_list)->exec()[0]){
-				foreach($entries as $entry){
-					$proc = explode(':', $entry);
-					
-					if($proc[0] == self::LOCALHOST){
-						if(isset($this->procs[$proc[1]]) && $this->procs[$proc[1]]['pid'] == $proc[2]){
-							shell_exec('kill '.$proc[2]);
-						}
+		if($entries = $this->redis_abort_list->fetch()){
+			foreach($entries as $entry){
+				$proc = explode(':', $entry);
+				
+				if($proc[0] == self::LOCALHOST){
+					if(isset($this->procs[$proc[1]]) && $this->procs[$proc[1]]['pid'] == $proc[2]){
+						shell_exec('kill '.$proc[2]);
 					}
-					else{
-						if(isset($this->workers[$proc[0]]['procs'][$proc[1]]) && $this->workers[$proc[0]]['procs'][$proc[1]]['pid'] == $proc[2]){
-							$this->workers[$proc[0]]['ssh']->exec('kill '.$proc[2]);
-						}
+				}
+				else{
+					if(isset($this->workers[$proc[0]]['procs'][$proc[1]]) && $this->workers[$proc[0]]['procs'][$proc[1]]['pid'] == $proc[2]){
+						$this->workers[$proc[0]]['ssh']->exec('kill '.$proc[2]);
 					}
 				}
 			}

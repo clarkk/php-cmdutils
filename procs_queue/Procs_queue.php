@@ -155,7 +155,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 			$cache = new \Utils\Cache\Cache($auth);
 			$this->redis = $cache->redis();
 			
-			$this->redis_abort_list = new \Utils\Cache\Buffer($abort_list);
+			$this->redis_abort_list = (new \Utils\Cache\Buffer($abort_list))->cache($cache);
 			
 			if($this->verbose){
 				$this->verbose('Redis abort list \''.$abort_list.'\' connected', self::COLOR_GREEN);

@@ -281,7 +281,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 	}
 	
 	private function kill_aborted_tasks(){
-		if($entries = $this->redis_abort_list->fetch()){
+		if($entries = $this->redis_abort_list?->fetch()){
 			foreach($entries as $entry){
 				$proc = explode(':', $entry);
 				

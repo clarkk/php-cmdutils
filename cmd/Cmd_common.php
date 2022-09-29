@@ -3,9 +3,9 @@
 namespace Utils\Cmd;
 
 trait Cmd_common {
-	private $is_stream 		= false;
-	private $output 		= '';
-	private $pipes 			= [];
+	private bool $is_stream 	= false;
+	private string $output 		= '';
+	private array $pipes 		= [];
 	
 	public function output(bool $trim=false, bool $stream_wait=false): string{
 		//	Non-blocking call

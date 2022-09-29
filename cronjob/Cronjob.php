@@ -3,25 +3,25 @@
 namespace Utils\Cronjob;
 
 class Cronjob extends Argv {
-	protected $require_task_name 	= true;
-	protected $allowed_argv = [
+	protected bool $require_task_name 	= true;
+	protected array $allowed_argv = [
 		self::ARG_V,
 		self::ARG_PROCESS
 	];
 	
-	private $cronjob_id;
-	private $cronjob_file;
-	private $cronjob_time_start;
-	private $cronjob_db_ended 		= false;
+	private int $cronjob_id;
+	private string $cronjob_file;
+	private int $cronjob_time_start;
+	private bool $cronjob_db_ended 		= false;
 	
-	private $Task;
+	private \Utils\Cronjob\Task $Task;
 	
 	private const FAILOVER_TIMEOUT 	= 60;
 	private const FAILOVER_SLEEP 	= 5;
 	
 	private const DB_TABLE 			= 'cronjob';
 	
-	public function init(string $base_path, bool $use_db=true){
+	public function init(string $base_path, bool $use_db=true): void{
 		if(!$this->task_name){
 			throw new Error('Cronjob task name not given');
 		}
@@ -72,7 +72,7 @@ class Cronjob extends Argv {
 		}
 	}
 	
-	private function try_db(){
+	private function try_db(): void{
 		$failover_start = time();
 		
 		while(true){
@@ -122,7 +122,7 @@ class Cronjob extends Argv {
 		}
 	}
 	
-	private function exec(bool $use_db, int $failover_start=0){
+	private function exec(bool $use_db, int $failover_start=0): void{
 		$pid = posix_getpid();
 		
 		require_once $this->cronjob_file;
@@ -162,7 +162,7 @@ class Cronjob extends Argv {
 		$this->end_gracefully($use_db);
 	}
 	
-	private function end_gracefully(bool $use_db){
+	private function end_gracefully(bool $use_db): void{
 		$time_exec = time() - $this->cronjob_time_start;
 		
 		if($use_db){
@@ -198,7 +198,7 @@ class Cronjob extends Argv {
 		}
 	}
 	
-	private function update_cronjob(array $update){
+	private function update_cronjob(array $update): void{
 		(new \dbdata\Put)->exec(self::DB_TABLE, $this->cronjob_id, $update);
 	}
 }

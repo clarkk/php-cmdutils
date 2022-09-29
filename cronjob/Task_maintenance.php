@@ -3,7 +3,7 @@
 namespace Utils\Cronjob;
 
 abstract class Task_maintenance extends Task {
-	protected function purge(string $table, int $days, string $field='time'){
+	protected function purge(string $table, int $days, string $field='time'): void{
 		$time = $this->get_time($days);
 		
 		if($this->verbose){
@@ -15,7 +15,7 @@ abstract class Task_maintenance extends Task {
 		])->exec($table, 0);
 	}
 	
-	protected function optimize_tables(){
+	protected function optimize_tables(): void{
 		$dbh = \dbdata\DB::get_dbh();
 		$sth = $dbh->prepare("SHOW TABLES");
 		$sth->execute();

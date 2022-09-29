@@ -13,13 +13,13 @@ class Worker_init extends \Utils\SSH\SSH {
 		return $nproc;
 	}
 	
-	public function check_proc_path(string $proc_path){
+	public function check_proc_path(string $proc_path): void{
 		if(!$this->check_path($proc_path, true)){
 			throw new \Utils\SSH\Error("proc path not found: $proc_path", self::ERR_PROCESS);
 		}
 	}
 	
-	public function check_tmp_path(string $tmp_path){
+	public function check_tmp_path(string $tmp_path): void{
 		if(!$this->check_path($tmp_path)){
 			throw new \Utils\SSH\Error("tmp path not found: $tmp_path", self::ERR_PROCESS);
 		}

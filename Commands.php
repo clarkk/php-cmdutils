@@ -30,7 +30,7 @@ class Commands {
 		return ($timeout ? 'timeout -s '.Cmd\Cmd::SIGKILL." $timeout " : '').$command;
 	}
 	
-	static private function apply_syntax_end(string &$syntax){
+	static private function apply_syntax_end(string &$syntax): void{
 		$syntax = rtrim($syntax);
 		if(substr($syntax, -1) != ';'){
 			$syntax .= ';';

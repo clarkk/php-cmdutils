@@ -8,7 +8,7 @@ class SSH implements \Utils\Net\Error_codes {
 	private $session;
 	private $sftp;
 	
-	private $time_last_exec;
+	private int $time_last_exec;
 	
 	const PIPE_STDOUT 		= SSH2_STREAM_STDIO;
 	const PIPE_STDERR 		= SSH2_STREAM_STDERR;
@@ -37,7 +37,7 @@ class SSH implements \Utils\Net\Error_codes {
 		return time() - $this->time_last_exec;
 	}
 	
-	public function exec(string $command, bool $trim=false){
+	public function exec(string $command, bool $trim=false): ?string{
 		$stream = ssh2_exec($this->session, $command);
 		
 		$this->pipes[self::PIPE_STDOUT] = ssh2_fetch_stream($stream, self::PIPE_STDOUT);
@@ -58,9 +58,11 @@ class SSH implements \Utils\Net\Error_codes {
 		
 		stream_set_read_buffer($this->pipes[self::PIPE_STDOUT], 0);
 		stream_set_read_buffer($this->pipes[self::PIPE_STDERR], 0);
+		
+		return null;
 	}
 	
-	public function upload(string $local, string $remote){
+	public function upload(string $local, string $remote): void{
 		if(!$this->sftp){
 			$this->sftp = ssh2_sftp($this->session);
 		}
@@ -72,7 +74,7 @@ class SSH implements \Utils\Net\Error_codes {
 		return $this->exec("[ -f /proc/$pid/stat ] && echo 1 || echo 0");
 	}
 	
-	public function disconnect(){
+	public function disconnect(): void{
 		if($this->sftp){
 			unset($this->sftp);
 		}

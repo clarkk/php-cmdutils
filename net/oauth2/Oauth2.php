@@ -12,13 +12,13 @@ class Oauth2 extends \Utils\Net\Net {
 	const TOKEN_GRANT_TYPE 		= 'grant_type';
 	const TOKEN_SCOPE 			= 'scope';
 	
-	private $token;
+	private string $token;
 	
-	private $token_name;
-	private $token_url;
-	private $token_params;
+	private string $token_name;
+	private string $token_url;
+	private array $token_params;
 	
-	public function token_request(string $token_name, string $url, array $params, bool $force_token=false){
+	public function token_request(string $token_name, string $url, array $params, bool $force_token=false): void{
 		$this->keep_alive();
 		
 		$this->token_name 	= $token_name;

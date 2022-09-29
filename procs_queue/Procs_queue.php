@@ -21,12 +21,12 @@ use \Utils\SSH\SSH;
 use \Utils\Procs_queue\Worker_init;
 
 abstract class Procs_queue extends \Utils\Verbose {
-	const SSH_KILL_TIMEOUT 			= true;
+	const SSH_KILL_TIMEOUT 				= true;
 	
-	const TIMEOUT 					= 999;
-	const SSH_TIMEOUT 				= 60;
+	const TIMEOUT 						= 999;
+	const SSH_TIMEOUT 					= 60;
 	
-	const DEFAULT_TASK_TIMEOUT 		= 60 * 2;
+	const DEFAULT_TASK_TIMEOUT 			= 60 * 2;
 	
 	/*
 	*	Highest priority:		-20
@@ -37,37 +37,37 @@ abstract class Procs_queue extends \Utils\Verbose {
 	*	Idle priority:			> 9
 	*	Lowest priority:		19	
 	*/
-	const TASK_PROC_NICE 			= 8;
+	const TASK_PROC_NICE 				= 8;
 	
-	private $loop_idle_sleep 		= 1;
+	private int $loop_idle_sleep 		= 1;
 	
-	protected $task_name;
-	private $task_timeout 			= self::DEFAULT_TASK_TIMEOUT;
+	protected string $task_name;
+	private int $task_timeout 			= self::DEFAULT_TASK_TIMEOUT;
 	
-	private $task_fetch_idle_time 	= 1;
-	private $task_fetch_time_last	= 0;
+	private int $task_fetch_idle_time 	= 1;
+	private float $task_fetch_time_last	= 0;
 	
-	private $tasks 					= [];
+	private array $tasks 				= [];
 	
-	private $nproc;
-	private $nproc_max 				= 0;
-	private $procs 					= [];
-	private $workers 				= [];
+	private int $nproc;
+	private int $nproc_max 				= 0;
+	private array $procs 				= [];
+	private array $workers 				= [];
 	
-	private $time_start;
+	private int $time_start;
 	
-	private $localhost_tmp_path;
-	private $localhost_proc_path;
+	private string $localhost_tmp_path;
+	private string $localhost_proc_path;
 	
 	private $buffer_abort_list;
 	
-	const EXITCODE_ABORT 	= 255;
+	const EXITCODE_ABORT 				= 255;
 	
-	const LOCALHOST 		= 'localhost';
+	const LOCALHOST 					= 'localhost';
 	
-	const OUTPUT_FILE 		= 'output.json';
+	const OUTPUT_FILE 					= 'output.json';
 	
-	const VERBOSE_SSH_INDENTATION = "\t\t\t\t\t\t\t\t\t";
+	const VERBOSE_SSH_INDENTATION 		= "\t\t\t\t\t\t\t\t\t";
 	
 	public function __construct(string $task_name, int $verbose=0){
 		$this->nproc 		= $this->nproc_max_limit(shell_exec('nproc'));
@@ -167,7 +167,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 		return $this;
 	}
 	
-	public function exec(string $localhost_proc_path, string $localhost_tmp_path){
+	public function exec(string $localhost_proc_path, string $localhost_tmp_path): void{
 		$this->check_localhost($localhost_proc_path, $localhost_tmp_path);
 		
 		$this->start_time();
@@ -206,16 +206,16 @@ abstract class Procs_queue extends \Utils\Verbose {
 		}
 	}
 	
-	protected function update_task_fetch_time(){
+	protected function update_task_fetch_time(): void{
 		$this->task_fetch_time_last = microtime(true);
 	}
 	
 	abstract protected function task_fetch(int $num): array;
 	abstract protected function task_start(array $data, string $pid);
 	abstract protected function task_success(array $data, string $json);
-	abstract protected function task_failed(array $data);
+	abstract protected function task_failed(array $data): void;
 	
-	private function process_tasks(){
+	private function process_tasks(): void{
 		$this->read_proc_streams();
 		
 		$proc_slots = $this->get_open_proc_slots();
@@ -277,7 +277,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 		return round(microtime(true) - $this->task_fetch_time_last, 2);
 	}
 	
-	private function kill_aborted_tasks(){
+	private function kill_aborted_tasks(): void{
 		if($entries = $this->buffer_abort_list?->fetch()){
 			foreach($entries as $entry){
 				$proc = explode(':', $entry);
@@ -296,7 +296,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 		}
 	}
 	
-	private function start_proc(string $proc_slot, array $data, string $file){
+	private function start_proc(string $proc_slot, array $data, string $file): void{
 		if($proc_slot == self::LOCALHOST){
 			$tmp_path 		= $this->task_tmp_path($this->localhost_tmp_path, $data);
 			$exitcode 		= $tmp_path.'/exitcode';
@@ -366,7 +366,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 		$this->task_start($data, $uid);
 	}
 	
-	private function read_proc_streams(){
+	private function read_proc_streams(): void{
 		if($this->verbose){
 			$this->verbose("\nLoop started\t\t\t\t\t\t".$this->get_remain_time().' secs', self::COLOR_GRAY);
 		}
@@ -475,7 +475,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 		}
 	}
 	
-	private function ssh_connection_status(){
+	private function ssh_connection_status(): void{
 		foreach($this->workers as $host => &$worker){
 			if($worker['ssh']->get_idle_time() > self::SSH_TIMEOUT){
 				if($this->verbose){
@@ -511,7 +511,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 		return !strlen($exitcode) ? self::EXITCODE_ABORT : $exitcode;
 	}
 	
-	private function read_proc_stream($interface, string $proc_id, bool $is_worker=false){
+	private function read_proc_stream($interface, string $proc_id, bool $is_worker=false): void{
 		if($is_worker){
 			$verbose 	= 'SSH '.$proc_id;
 			$stdout 	= SSH::PIPE_STDOUT;
@@ -538,7 +538,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 		}
 	}
 	
-	private function verbose_proc_complete(string $verbose, int $exitcode, bool $is_worker=false){
+	private function verbose_proc_complete(string $verbose, int $exitcode, bool $is_worker=false): void{
 		if($exitcode){
 			if($exitcode == self::EXITCODE_ABORT){
 				$color 		= self::COLOR_YELLOW;
@@ -605,7 +605,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 		return false;
 	}
 	
-	private function check_localhost(string $proc_path, string $tmp_path){
+	private function check_localhost(string $proc_path, string $tmp_path): void{
 		if(!is_file($proc_path)){
 			$err = "proc path not found on localhost: $proc_path";
 			if($this->verbose){
@@ -683,7 +683,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 		return round(microtime(true) - $this->time_start - self::TIMEOUT, 2);
 	}
 	
-	private function start_time(){
+	private function start_time(): void{
 		if($this->verbose){
 			$this->verbose('Starting master process', self::COLOR_GRAY);
 		}

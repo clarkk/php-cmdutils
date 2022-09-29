@@ -3,16 +3,16 @@
 namespace Utils\Cronjob;
 
 abstract class Argv {
-	public const ARG_V 				= 'v';
-	public const ARG_PROCESS 		= 'process';
+	const ARG_V 						= 'v';
+	const ARG_PROCESS 					= 'process';
 	
-	protected $task_name;
-	protected $args_var 			= [];
+	protected string $task_name;
+	protected array $args_var 			= [];
 	
-	protected $require_task_name 	= false;
-	protected $allowed_argv 		= [];
+	protected bool $require_task_name 	= false;
+	protected array $allowed_argv 		= [];
 	
-	protected $verbose 				= false;
+	protected int $verbose	 			= 0;
 	
 	public function __construct(int $max_exec_time_min=120){
 		global $argv;
@@ -30,7 +30,7 @@ abstract class Argv {
 		return $this->task_name;
 	}
 	
-	public function get_arg_var(string $arg, bool $decode=false){
+	public function get_arg_var(string $arg, bool $decode=false): ?string{
 		if(isset($this->args_var[$arg])){
 			return $decode ? unserialize(base64_decode($this->args_var[$arg])) : $this->args_var[$arg];
 		}
@@ -38,7 +38,7 @@ abstract class Argv {
 		return null;
 	}
 	
-	private function parse_argv(array $argv){
+	private function parse_argv(array $argv): void{
 		array_shift($argv);
 		
 		foreach($argv as $arg){

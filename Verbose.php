@@ -3,7 +3,7 @@
 namespace Utils;
 
 abstract class Verbose {
-	protected $verbose 	= 0;
+	protected int $verbose 	= 0;
 	
 	const COLOR_GRAY 	= '1;30';
 	const COLOR_GREEN 	= '0;32';
@@ -17,13 +17,13 @@ abstract class Verbose {
 	
 	const CRLF = "\r\n";
 	
-	private $log;
+	private string $log;
 	
 	public function __construct(){
 		$this->log = \Log\Log::get_log_file($this->task_name, false, true);
 	}
 	
-	protected function verbose(string $output, string $color=''){
+	protected function verbose(string $output, string $color=''): void{
 		if($color){
 			$output = $this->output($output);
 			
@@ -46,7 +46,7 @@ abstract class Verbose {
 		return str_replace("\n", self::CRLF."\t> ", $output);
 	}
 	
-	private function log(string $output){
+	private function log(string $output): void{
 		file_put_contents($this->log, $output.self::CRLF, FILE_APPEND);
 	}
 }

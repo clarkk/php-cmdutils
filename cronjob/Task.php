@@ -3,10 +3,10 @@
 namespace Utils\Cronjob;
 
 abstract class Task extends \Utils\Verbose {
-	protected $task_name;
-	protected $session_start = false;
+	protected string $task_name;
+	protected bool $session_start = false;
 	
-	private $time_start;
+	private int $time_start;
 	
 	public function __construct(string $task_name, int $verbose){
 		$this->task_name 	= $task_name;
@@ -21,7 +21,7 @@ abstract class Task extends \Utils\Verbose {
 		}
 	}
 	
-	protected function start_task(){
+	protected function start_task(): void{
 		if($this->verbose){
 			$this->verbose('Task \''.$this->task_name.'\' running as \''.trim(shell_exec('whoami')).'\'', self::COLOR_GREEN);
 		}

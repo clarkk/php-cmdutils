@@ -5,13 +5,13 @@ namespace Utils\Cmd;
 class Cmd {
 	use Cmd_common;
 	
-	private $pid;
+	private ?int $pid;
 	private $proc;
 	
-	private $use_stdin 		= false;
+	private bool $use_stdin = false;
 	
-	private $exitcode 		= -1;
-	private $termsig 		= false;
+	private int $exitcode 	= -1;
+	private bool $termsig 	= false;
 	
 	const PIPE_STDIN 		= 0;
 	const PIPE_STDOUT 		= 1;
@@ -25,7 +25,7 @@ class Cmd {
 		$this->use_stdin = $use_stdin;
 	}
 	
-	public function input(string $data){
+	public function input(string $data): void{
 		fwrite($this->pipes[self::PIPE_STDIN], $data);
 	}
 	
@@ -59,7 +59,7 @@ class Cmd {
 		return false;
 	}
 	
-	public function exec(string $command, bool $trim=false){
+	public function exec(string $command, bool $trim=false): ?string{
 		$this->proc = proc_open($command, [
 			self::PIPE_STDIN 	=> ['pipe', 'r'],
 			self::PIPE_STDOUT 	=> ['pipe', 'w'],
@@ -84,9 +84,11 @@ class Cmd {
 		
 		stream_set_blocking($this->pipes[self::PIPE_STDOUT], false);
 		stream_set_blocking($this->pipes[self::PIPE_STDERR], false);
+		
+		return null;
 	}
 	
-	public function close(){
+	public function close(): void{
 		foreach($this->pipes as $pipe){
 			if(is_resource($pipe)){
 				fclose($pipe);

@@ -8,25 +8,25 @@
 namespace Utils\WSS;
 
 abstract class Server extends \Utils\Verbose {
-	protected $clients 			= [];
+	protected array $clients 		= [];
 	
-	private $num_main_fibers	= 0;
-	private $fibers 			= [];
+	private int $num_main_fibers	= 0;
+	private array $fibers 			= [];
 	
-	private $host 				= '0.0.0.0';
-	private $port;
+	private string $host 			= '0.0.0.0';
+	private int $port;
 	
 	private $server_socket;
-	private $client_sockets 	= [];
+	private array $client_sockets 	= [];
 	
-	private $loop_idle_sleep 	= 0.5;
+	private float $loop_idle_sleep 	= 0.5;
 	
-	const TIMEOUT_WRITE			= 30;
-	const TIMEOUT_READ 			= 30;
-	const BUFFER_WRITE 			= 1024 * 5;
-	const BUFFER_READ 			= 1024 * 5;
+	const TIMEOUT_WRITE				= 30;
+	const TIMEOUT_READ 				= 30;
+	const BUFFER_WRITE 				= 1024 * 5;
+	const BUFFER_READ 				= 1024 * 5;
 	
-	const USEC 					= 1000000;
+	const USEC 						= 1000000;
 	
 	public function __construct(string $task_name, int $verbose, int $port=9000){
 		$this->task_name 		= $task_name;
@@ -181,7 +181,7 @@ abstract class Server extends \Utils\Verbose {
 		return count($this->fibers) > $this->num_main_fibers;
 	}
 	
-	protected function send(Client $client, array $message){
+	protected function send(Client $client, array $message): void{
 		if(!$message){
 			return;
 		}
@@ -219,7 +219,7 @@ abstract class Server extends \Utils\Verbose {
 		unset($this->clients[$socket_id], $this->client_sockets[$socket_id]);
 	}
 	
-	private function read($socket, Client $client){
+	private function read($socket, Client $client): void{
 		$fiber = new \Fiber(function($socket, Client $client): void{
 			$read 	= [$socket];
 			$write 	= [];
@@ -284,7 +284,7 @@ abstract class Server extends \Utils\Verbose {
 		$this->fibers[] = $fiber;
 	}
 	
-	private function write($socket, string $data, $success=null){
+	private function write($socket, string $data, $success=null): void{
 		if(!$data){
 			return;
 		}

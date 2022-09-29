@@ -4,27 +4,27 @@ namespace Utils\Net;
 
 class Net implements Error_codes {
 	private $curl;
-	private $keep_alive 	= false;
-	private $decode_type 	= false;
+	private bool $keep_alive 		= false;
+	private bool $decode_type 		= false;
 	
-	private $boundary;
+	private string $boundary;
 	
-	private $verbose 		= false;
-	private $verbose_output;
+	private bool $verbose 			= false;
+	private string $verbose_output;
 	
-	const CONTENT_TYPE 			= 'Content-Type';
-	const CONTENT_TYPE_JSON 	= 'application/json';
-	const CONTENT_TYPE_TEXT 	= 'text/plain';
-	const CONTENT_TYPE_FORM 	= 'application/x-www-form-urlencoded';
+	const CONTENT_TYPE 				= 'Content-Type';
+	const CONTENT_TYPE_JSON 		= 'application/json';
+	const CONTENT_TYPE_TEXT 		= 'text/plain';
+	const CONTENT_TYPE_FORM 		= 'application/x-www-form-urlencoded';
 	
-	const CONTENT_LENGTH 		= 'Content-Length';
+	const CONTENT_LENGTH 			= 'Content-Length';
 	
-	const CONTENT_DISPOSITION 	= 'Content-Disposition';
+	const CONTENT_DISPOSITION 		= 'Content-Disposition';
 	
-	const METHOD_POST 			= 'POST';
-	const METHOD_PUT 			= 'PUT';
+	const METHOD_POST 				= 'POST';
+	const METHOD_PUT 				= 'PUT';
 	
-	const CRLF 					= "\r\n";
+	const CRLF 						= "\r\n";
 	
 	public function __construct(bool $ssl_verify=true, bool $verbose=false){
 		$this->curl = curl_init();
@@ -52,7 +52,7 @@ class Net implements Error_codes {
 		return $this;
 	}
 	
-	public function close(){
+	public function close(): void{
 		if($this->verbose){
 			fclose($this->verbose_output);
 		}
@@ -90,7 +90,7 @@ class Net implements Error_codes {
 		return '--'.$this->boundary.'--';
 	}
 	
-	protected function decode_response(string $type, string &$response){
+	protected function decode_response(string $type, string &$response): void{
 		switch($type){
 			case self::CONTENT_TYPE_JSON:
 				try{
@@ -151,7 +151,7 @@ class Net implements Error_codes {
 		];
 	}
 	
-	private function check_url(string $url){
+	private function check_url(string $url): void{
 		if(!strpos($url, '://')){
 			throw new Error("Protocol missing in URL '$url'", self::ERR_NETWORK);
 		}

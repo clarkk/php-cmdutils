@@ -31,12 +31,12 @@ abstract class Protocol extends \Utils\Verbose {
 	
 	const CRLF 							= "\r\n";
 	
-	protected $key;
-	private $buffer 					= '';
-	private $queue 						= [];
+	protected string $key;
+	private string $buffer 				= '';
+	private array $queue 				= [];
 	
 	public function is_buffering(): bool{
-		return $this->buffer ? true : false;
+		return !!$this->buffer;
 	}
 	
 	public function buffer(string $data): ?array{
@@ -44,7 +44,7 @@ abstract class Protocol extends \Utils\Verbose {
 		return $this->decode();
 	}
 	
-	public function queue(string $message, string $type){
+	public function queue(string $message, string $type): void{
 		try{
 			$this->queue[] = $this->encode($message, $type);
 		}

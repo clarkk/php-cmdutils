@@ -4,12 +4,12 @@ namespace Utils\WSS;
 
 class Client extends Protocol {
 	private $socket;
-	private $socket_id;
-	private $path;
-	private $version;
-	private $data 			= [];
+	private int $socket_id;
+	private string $path;
+	private int $version;
+	private array $data 		= [];
 	
-	const HEADER_BYTES_READ	= 1024;
+	const HEADER_BYTES_READ		= 1024;
 	
 	public function __construct(string $task_name, int $verbose, $socket){
 		$this->task_name 	= $task_name;
@@ -59,7 +59,7 @@ class Client extends Protocol {
 		$this->data = $data;
 	}
 	
-	public function data(?string $key=null){
+	public function data(?string $key=null): mixed{
 		return is_null($key) ? $this->data : $this->data[$key];
 	}
 	

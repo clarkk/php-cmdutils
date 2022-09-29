@@ -59,7 +59,6 @@ abstract class Procs_queue extends \Utils\Verbose {
 	private $localhost_tmp_path;
 	private $localhost_proc_path;
 	
-	private $redis;
 	private $redis_abort_list;
 	
 	const EXITCODE_ABORT 	= 255;
@@ -153,8 +152,6 @@ abstract class Procs_queue extends \Utils\Verbose {
 	public function start_redis(string $auth, string $abort_list): self{
 		try{
 			$cache = new \Utils\Cache\Cache($auth);
-			$this->redis = $cache->redis();
-			
 			$this->redis_abort_list = (new \Utils\Cache\Buffer($abort_list))->cache($cache);
 			
 			if($this->verbose){

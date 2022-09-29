@@ -15,25 +15,63 @@ class Buffer {
 		return $this;
 	}
 	
+	public function fetch(string $group=''): array{
+		if(!$this->redis->lLen($this->key)){
+			return [];
+		}
+		
+		$list = [];
+		foreach($this->redis->multi()->lRange($this->key, 0, -1)->del($this->key)->exec()[0] ?? [] as $data){
+			$data = json_decode($data, true);
+			
+			if($group){
+				if(!isset($list[$data[$group]])){
+					$list[$data[$group]] = [];
+				}
+				
+				$list[$data[$group]][$data['id']] = $data;
+			}
+			else{
+				$list[$data['id']] = $data;
+			}
+		}
+		
+		return $list;
+	}
+	
 	public function is_buffering(): bool{
 		return !!$this->buffer;
 	}
 	
-	public function buffer(int $id, array $entry, string $dimension=''): void{
-		if($dimension){
-			if(!isset($this->buffer[$dimension])){
-				$this->buffer[$dimension] = [];
+	public function buffer(int $id, array $entry, string $group=''): void{
+		if($group){
+			if(!isset($this->buffer[$group])){
+				$this->buffer[$group] = [];
 			}
 			
-			$this->buffer[$dimension][$id] = $entry;
+			$this->buffer[$group][$id] = $entry;
 		}
 		else{
 			$this->buffer[$id] = $entry;
 		}
 	}
 	
-	public function write(bool $dimension=false): void{
-		if($dimension){
+	public function get_buffered_ids(bool $is_grouped=false): array{
+		if($is_grouped){
+			$list = [];
+			foreach($this->buffer as $name => $ids){
+				$list[$name] = array_keys($ids);
+			}
+			
+			return $list;
+		}
+		else{
+			return array_keys($this->buffer);
+		}
+	}
+	
+	public function write(bool $is_grouped=false): void{
+		if($is_grouped){
 			foreach($this->buffer as $entries){
 				foreach($entries as $entry){
 					$this->push($entry);

@@ -11,6 +11,10 @@ class Cache {
 		$this->redis->auth($auth);
 	}
 	
+	public function redis(): \Redis{
+		return $this->redis;
+	}
+	
 	public function write($buffer): void{
 		$buffer->send($this->redis);
 	}

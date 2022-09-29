@@ -59,7 +59,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 	private $localhost_tmp_path;
 	private $localhost_proc_path;
 	
-	private $redis_abort_list;
+	private $buffer_abort_list;
 	
 	const EXITCODE_ABORT 	= 255;
 	
@@ -152,7 +152,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 	public function start_redis(string $auth, string $abort_list): self{
 		try{
 			$cache = new \Utils\Cache\Cache($auth);
-			$this->redis_abort_list = (new \Utils\Cache\Buffer($abort_list))->cache($cache);
+			$this->buffer_abort_list = (new \Utils\Cache\Buffer($abort_list))->cache($cache);
 			
 			if($this->verbose){
 				$this->verbose('Redis abort list \''.$abort_list.'\' connected', self::COLOR_GREEN);
@@ -278,7 +278,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 	}
 	
 	private function kill_aborted_tasks(){
-		if($entries = $this->redis_abort_list?->fetch()){
+		if($entries = $this->buffer_abort_list?->fetch()){
 			foreach($entries as $entry){
 				$proc = explode(':', $entry);
 				

@@ -3,11 +3,12 @@
 namespace Utils\Cache;
 
 class Buffer {
-	protected array $buffer = [];
-	protected \Redis $redis;
+	private array $buffer 	= [];
+	private \Redis $redis;
 	
 	public function __construct(
-		private string $key
+		private string $key,
+		private bool $use_json=true
 	){}
 	
 	public function cache(Cache &$cache): self{
@@ -22,7 +23,9 @@ class Buffer {
 		
 		$list = [];
 		foreach($this->redis->multi()->lRange($this->key, 0, -1)->del($this->key)->exec()[0] ?? [] as $data){
-			$data = json_decode($data, true);
+			if($this->use_json){
+				$data = json_decode($data, true);
+			}
 			
 			if($group){
 				if(!isset($list[$data[$group]])){
@@ -91,6 +94,6 @@ class Buffer {
 	}
 	
 	private function push(array $data): void{
-		$this->redis->rPush($this->key, json_encode($data, JSON_UNESCAPED_UNICODE));
+		$this->redis->rPush($this->key, $this->use_json ? json_encode($data, JSON_UNESCAPED_UNICODE) : $data);
 	}
 }

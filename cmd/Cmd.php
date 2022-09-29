@@ -5,7 +5,7 @@ namespace Utils\Cmd;
 class Cmd {
 	use Cmd_common;
 	
-	private ?int $pid;
+	private int $pid 		= 0;
 	private $proc;
 	
 	private bool $use_stdin = false;

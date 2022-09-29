@@ -15,10 +15,6 @@ class Cache {
 		return $this->redis;
 	}
 	
-	public function write($buffer): void{
-		$buffer->send($this->redis);
-	}
-	
 	public function close(): void{
 		$this->redis->close();
 	}

@@ -83,6 +83,8 @@ class Buffer {
 				$this->push($entry);
 			}
 		}
+		
+		$this->buffer = [];
 	}
 	
 	private function push(array $data): void{

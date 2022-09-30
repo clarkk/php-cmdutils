@@ -31,7 +31,7 @@ abstract class Protocol extends \Utils\Verbose {
 	
 	const CRLF 							= "\r\n";
 	
-	protected string $key;
+	protected string $key 				= '';
 	private string $buffer 				= '';
 	private array $queue 				= [];
 	

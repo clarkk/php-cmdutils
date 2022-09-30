@@ -3,19 +3,21 @@
 namespace Utils;
 
 abstract class Verbose {
-	protected int $verbose 	= 0;
+	protected int $verbose 		= 0;
 	
-	const COLOR_GRAY 	= '1;30';
-	const COLOR_GREEN 	= '0;32';
-	const COLOR_BLUE 	= '0;36';
-	const COLOR_YELLOW 	= '1;33';
-	const COLOR_RED 	= '0;31';
-	const COLOR_PURPLE 	= '0;35';
+	const COLOR_GRAY 			= '1;30';
+	const COLOR_GREEN 			= '0;32';
+	const COLOR_BLUE 			= '0;36';
+	const COLOR_YELLOW 			= '1;33';
+	const COLOR_RED 			= '0;31';
+	const COLOR_PURPLE 			= '0;35';
 	
-	const VERBOSE_PLAIN = 1;
-	const VERBOSE_COLOR = 2;
+	const VERBOSE_PLAIN 		= 1;
+	const VERBOSE_COLOR 		= 2;
 	
-	const CRLF = "\r\n";
+	const CRLF 					= "\r\n";
+	
+	const VERBOSE_INDENTATION 	= "\t\t\t\t\t\t\t\t\t";
 	
 	private string $log;
 	

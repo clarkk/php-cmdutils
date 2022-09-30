@@ -67,8 +67,6 @@ abstract class Procs_queue extends \Utils\Verbose {
 	
 	const OUTPUT_FILE 					= 'output.json';
 	
-	const VERBOSE_SSH_INDENTATION 		= "\t\t\t\t\t\t\t\t\t";
-	
 	public function __construct(string $task_name, int $verbose=0){
 		$this->nproc 		= $this->nproc_max_limit(shell_exec('nproc'));
 		$this->task_name 	= $task_name;
@@ -450,7 +448,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 			$this->workers[$proc_slot]['ssh_pool'][] = $ssh;
 			
 			if($this->verbose){
-				$this->verbose(self::VERBOSE_SSH_INDENTATION.'SSH --> Pool '.count($this->workers[$proc_slot]['ssh_pool']), self::COLOR_BLUE);
+				$this->verbose(self::VERBOSE_INDENTATION.'SSH --> Pool '.count($this->workers[$proc_slot]['ssh_pool']), self::COLOR_BLUE);
 			}
 			
 			return null;
@@ -460,7 +458,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 			//	Fetch from SSH pool
 			if($this->workers[$proc_slot]['ssh_pool']){
 				if($this->verbose){
-					$this->verbose(self::VERBOSE_SSH_INDENTATION.'SSH <-- Pool '.(count($this->workers[$proc_slot]['ssh_pool']) - 1), self::COLOR_BLUE);
+					$this->verbose(self::VERBOSE_INDENTATION.'SSH <-- Pool '.(count($this->workers[$proc_slot]['ssh_pool']) - 1), self::COLOR_BLUE);
 				}
 				
 				return array_shift($this->workers[$proc_slot]['ssh_pool']);
@@ -468,7 +466,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 			
 			//	Initiate new SSH
 			if($this->verbose){
-				$this->verbose(self::VERBOSE_SSH_INDENTATION.'SSH initiated', self::COLOR_BLUE);
+				$this->verbose(self::VERBOSE_INDENTATION.'SSH initiated', self::COLOR_BLUE);
 			}
 			
 			return new SSH($this->workers[$proc_slot]['user'], $proc_slot, true);
@@ -479,7 +477,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 		foreach($this->workers as $host => &$worker){
 			if($worker['ssh']->get_idle_time() > self::SSH_TIMEOUT){
 				if($this->verbose){
-					$this->verbose(self::VERBOSE_SSH_INDENTATION.'Timeout: Master SSH ping '.$host, self::COLOR_BLUE);
+					$this->verbose(self::VERBOSE_INDENTATION.'Timeout: Master SSH ping '.$host, self::COLOR_BLUE);
 				}
 				
 				$worker['ssh']->exec('cd .');
@@ -489,7 +487,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 				if($ssh->get_idle_time() > self::SSH_TIMEOUT){
 					if(self::SSH_KILL_TIMEOUT){
 						if($this->verbose){
-							$this->verbose(self::VERBOSE_SSH_INDENTATION.'Worker SSH kill timeout '.$host.' (Pool: '.(count($worker['ssh_pool']) - 1).')', self::COLOR_BLUE);
+							$this->verbose(self::VERBOSE_INDENTATION.'Worker SSH kill timeout '.$host.' (Pool: '.(count($worker['ssh_pool']) - 1).')', self::COLOR_BLUE);
 						}
 						
 						$ssh->disconnect();
@@ -497,7 +495,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 					}
 					else{
 						if($this->verbose){
-							$this->verbose(self::VERBOSE_SSH_INDENTATION.'Worker SSH ping timeout '.$host.' (Pool: '.count($worker['ssh_pool']).')', self::COLOR_BLUE);
+							$this->verbose(self::VERBOSE_INDENTATION.'Worker SSH ping timeout '.$host.' (Pool: '.count($worker['ssh_pool']).')', self::COLOR_BLUE);
 						}
 						
 						$ssh->exec('cd .');

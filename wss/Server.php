@@ -152,7 +152,7 @@ abstract class Server extends \Utils\Verbose {
 			if($this->verbose){
 				$time = time();
 				if($time - $time_status > 10){
-					$this->verbose('Clients: '.count($this->client_sockets).', Fibers: '.count($this->fibers).' ('.$this->num_main_fibers.')', self::COLOR_BLUE);
+					$this->verbose(self::VERBOSE_INDENTATION.'Clients: '.count($this->client_sockets).', Fibers: '.count($this->fibers).' ('.$this->num_main_fibers.')', self::COLOR_BLUE);
 					$time_status = $time;
 				}
 			}

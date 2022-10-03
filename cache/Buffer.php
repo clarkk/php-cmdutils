@@ -94,6 +94,6 @@ class Buffer {
 	}
 	
 	private function push(array $data): void{
-		$this->redis->rPush($this->key, $this->use_json ? json_encode($data, JSON_UNESCAPED_UNICODE) : $data);
+		$this->redis->rPush($this->key, $this->use_json ? Cache::json_encode($data) : $data);
 	}
 }

@@ -6,6 +6,7 @@ class Net implements Error_codes {
 	private $curl;
 	private bool $keep_alive 		= false;
 	private bool $decode_type 		= false;
+	private string $auth 			= '';
 	
 	private string $boundary 		= '';
 	
@@ -42,6 +43,12 @@ class Net implements Error_codes {
 	
 	public function keep_alive(): self{
 		$this->keep_alive = true;
+		
+		return $this;
+	}
+	
+	public function auth(string $user, string $pass): self{
+		$this->auth = "$user:$pass";
 		
 		return $this;
 	}
@@ -114,6 +121,10 @@ class Net implements Error_codes {
 			CURLOPT_FOLLOWLOCATION 	=> true,
 			CURLOPT_HTTP_VERSION 	=> strpos($url, 'https://') === 0 ? CURL_HTTP_VERSION_2_0 : CURL_HTTP_VERSION_1_1
 		]);
+		
+		if($this->auth){
+			curl_setopt($this->curl, CURLOPT_USERPWD, $this->auth);
+		}
 		
 		if($post){
 			curl_setopt($this->curl, CURLOPT_POST, true);

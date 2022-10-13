@@ -7,10 +7,10 @@ class Net implements Error_codes {
 	private bool $keep_alive 		= false;
 	private bool $decode_type 		= false;
 	
-	private string $boundary;
+	private string $boundary 		= '';
 	
 	private bool $verbose 			= false;
-	private string $verbose_output;
+	private $verbose_output;
 	
 	const CONTENT_TYPE 				= 'Content-Type';
 	const CONTENT_TYPE_JSON 		= 'application/json';

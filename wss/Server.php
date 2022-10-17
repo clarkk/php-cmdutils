@@ -5,6 +5,11 @@
 // https://web.archive.org/web/20120918000731/http://srchea.com/blog/2011/12/build-a-real-time-application-using-html5-websockets/
 // https://www.hashbangcode.com/article/fibers-php-81
 
+/*
+	Find and kill the process who uses port 9000
+	# netstat -nlp | grep :9000
+*/
+
 namespace Utils\WSS;
 
 abstract class Server extends \Utils\Verbose {

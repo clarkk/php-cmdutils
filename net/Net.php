@@ -22,8 +22,10 @@ class Net implements Error_codes {
 	
 	const CONTENT_DISPOSITION 		= 'Content-Disposition';
 	
+	const METHOD_GET 				= 'GET';
 	const METHOD_POST 				= 'POST';
 	const METHOD_PUT 				= 'PUT';
+	const METHOD_DELETE 			= 'DELETE';
 	
 	const CRLF 						= "\r\n";
 	
@@ -70,7 +72,13 @@ class Net implements Error_codes {
 	public function request(string $url, string $post='', array $headers=[], array $options=[]): array{
 		$this->check_url($url);
 		
-		return $this->send($url, $post, $headers, $options);
+		return $this->send($post ? self::METHOD_POST : self::METHOD_GET, $url, $post, $headers, $options);
+	}
+	
+	public function request_delete(string $url, string $post='', array $headers=[], array $options=[]): array{
+		$this->check_url($url);
+		
+		return $this->send(self::METHOD_DELETE, $url, $post, $headers, $options);
 	}
 	
 	public function request_multipart(string $url, string $post='', array $headers=[], array $options=[]): array{
@@ -78,7 +86,7 @@ class Net implements Error_codes {
 		
 		$headers[] = self::CONTENT_TYPE.': multipart/form-data; boundary='.$this->boundary;
 		
-		return $this->send($url, $post, $headers, $options);
+		return $this->send(self::METHOD_POST, $url, $post, $headers, $options);
 	}
 	
 	public function multipart_value(string $key, string $value, string $file_name='', string $content_type=''): string{
@@ -110,8 +118,9 @@ class Net implements Error_codes {
 		}
 	}
 	
-	private function send(string $url, string $post, array $headers, array $options): array{
+	private function send(string $method, string $url, string $post, array $headers, array $options): array{
 		curl_setopt_array($this->curl, [
+			CURLOPT_CUSTOMREQUEST 	=> $method,
 			CURLOPT_HTTPHEADER 		=> array_merge([
 				'Accept-Encoding: gzip'
 			], $headers),
@@ -127,11 +136,7 @@ class Net implements Error_codes {
 		}
 		
 		if($post){
-			curl_setopt($this->curl, CURLOPT_POST, true);
 			curl_setopt($this->curl, CURLOPT_POSTFIELDS, $post);
-		}
-		else{
-			curl_setopt($this->curl, CURLOPT_POST, false);
 		}
 		
 		foreach($options as $key => $value){

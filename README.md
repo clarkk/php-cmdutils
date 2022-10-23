@@ -58,7 +58,7 @@ Calls an URL with **curl_\*** functions.
 
 ### Single URL request
 ```
-$Net = (new \Utils\Net\Net())
+$Net = (new \Utils\Net\Net)
   ->decode_type();  // Decode response content type like JSON to array
 
 //  GET request (connection is automatically closed when keep-alive is not enabled)
@@ -67,7 +67,7 @@ $response = $Net->request('https://the-url');
 
 ### Keep-Alive connection
 ```
-$Net = (new \Utils\Net\Net())
+$Net = (new \Utils\Net\Net)
   ->decode_type()  // Decode response content type like JSON to array
   ->keep_alive();  // Enable keep-alive connections
 
@@ -86,7 +86,7 @@ $Net->close();
 
 ### Multipart request (file upload etc.)
 ```
-$Net = (new \Utils\Net\Net())
+$Net = (new \Utils\Net\Net)
   ->decode_type();  // Decode response content type like JSON to array
 
 $file_upload      = $Net->multipart_value('post_name_of_file', file_get_contents('/path/to/file/The-file-name.txt'), 'The-file-name.txt');

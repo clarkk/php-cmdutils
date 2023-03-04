@@ -16,7 +16,8 @@ class Buffer {
 		return $this;
 	}
 	
-	public function fetch(string $group=''): array{
+	//	Read redis buffer data
+	public function fetch(string $group_key=''): array{
 		if(!$this->redis->lLen($this->key)){
 			return [];
 		}
@@ -27,12 +28,12 @@ class Buffer {
 				$data = json_decode($data, true);
 			}
 			
-			if($group){
-				if(!isset($list[$data[$group]])){
-					$list[$data[$group]] = [];
+			if($group_key){
+				if(!isset($list[$data[$group_key]])){
+					$list[$data[$group_key]] = [];
 				}
 				
-				$list[$data[$group]][$data['id']] = $data;
+				$list[$data[$group_key]][$data['id']] = $data;
 			}
 			elseif(!empty($data['id'])){
 				$list[$data['id']] = $data;
@@ -45,10 +46,12 @@ class Buffer {
 		return $list;
 	}
 	
+	//	Check if data is buffered
 	public function is_buffering(): bool{
 		return !!$this->buffer;
 	}
 	
+	//	Add data to buffer
 	public function buffer(int $id, array $entry, string $group=''): void{
 		if($group){
 			if(!isset($this->buffer[$group])){
@@ -62,6 +65,7 @@ class Buffer {
 		}
 	}
 	
+	//	Get buffered entry ids
 	public function get_buffered_ids(bool $is_grouped=false): array{
 		if($is_grouped){
 			$list = [];
@@ -76,6 +80,7 @@ class Buffer {
 		}
 	}
 	
+	//	Write buffer to redis
 	public function write(bool $is_grouped=false): void{
 		if($is_grouped){
 			foreach($this->buffer as $entries){

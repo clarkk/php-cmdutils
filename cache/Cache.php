@@ -39,6 +39,16 @@ class Cache {
 		return json_decode($this->fetch($key), true) ?? [];
 	}
 	
+	public function scan(string $pattern): array{
+		$list = [];
+		$this->redis->setOption(\Redis::OPT_SCAN, \Redis::SCAN_RETRY);
+		$it = null;
+		while($keys = $this->redis->scan($it, $pattern)){
+			$list = array_merge($list, $keys);
+		}
+		return $list;
+	}
+	
 	public function close(): void{
 		$this->redis->close();
 	}

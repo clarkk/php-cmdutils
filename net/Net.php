@@ -33,6 +33,7 @@ class Net implements Error_codes {
 		$this->curl = curl_init();
 		
 		if(!$ssl_verify){
+			curl_setopt($this->curl, CURLOPT_SSL_VERIFYHOST, false);
 			curl_setopt($this->curl, CURLOPT_SSL_VERIFYPEER, false);
 		}
 		

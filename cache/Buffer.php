@@ -52,7 +52,7 @@ class Buffer {
 	}
 	
 	//	Add data to buffer
-	public function buffer(int $id, array $entry, string $group=''): void{
+	public function buffer(int $id, $entry, string $group=''): self{
 		if($group){
 			if(!isset($this->buffer[$group])){
 				$this->buffer[$group] = [];
@@ -63,21 +63,21 @@ class Buffer {
 		else{
 			$this->buffer[$id] = $entry;
 		}
+		return $this;
 	}
 	
 	//	Get buffered entry ids
 	public function get_buffered_ids(bool $is_grouped=false): array{
 		if($is_grouped){
 			$list = [];
-			foreach($this->buffer as $name => $ids){
-				$list[$name] = array_keys($ids);
+			foreach($this->buffer as $group => $ids){
+				$list[$group] = array_keys($ids);
 			}
 			
 			return $list;
 		}
-		else{
-			return array_keys($this->buffer);
-		}
+		
+		return array_keys($this->buffer);
 	}
 	
 	//	Write buffer to redis
@@ -98,7 +98,7 @@ class Buffer {
 		$this->buffer = [];
 	}
 	
-	private function push(array $data): void{
+	private function push($data): void{
 		$this->redis->rPush($this->key, $this->use_json ? Cache::json_encode($data) : $data);
 	}
 }

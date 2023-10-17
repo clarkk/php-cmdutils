@@ -372,7 +372,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 			$this->read_proc_stream($proc['cmd'], $proc['id']);
 			
 			if(!$proc['cmd']->is_running()){
-				$exitcode 	= $this->parse_exitcode(trim(file_exists($proc['exitcode']) ? file_get_contents($proc['exitcode']) : ''));
+				$exitcode 	= $this->parse_exitcode(file_exists($proc['exitcode']) ? trim(file_get_contents($proc['exitcode'])) : '');
 				$output 	= $proc['tmp_path'].'/'.self::OUTPUT_FILE;
 				
 				if($this->verbose){

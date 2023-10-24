@@ -15,6 +15,7 @@ class Net implements Error_codes {
 	
 	const CONTENT_TYPE 				= 'Content-Type';
 	const CONTENT_TYPE_JSON 		= 'application/json';
+	const CONTENT_TYPE_XML 			= 'application/xml';
 	const CONTENT_TYPE_TEXT 		= 'text/plain';
 	const CONTENT_TYPE_FORM 		= 'application/x-www-form-urlencoded';
 	
@@ -114,6 +115,15 @@ class Net implements Error_codes {
 				}
 				catch(\Exception $e){
 					throw new Error('JSON decode error', self::ERR_RESPONSE);
+				}
+				break;
+			
+			case self::CONTENT_TYPE_XML:
+				try{
+					$response = \Str\Format::xml_decode($response);
+				}
+				catch(\Exception $e){
+					throw new Error('XML decode > JSON decode error', self::ERR_RESPONSE);
 				}
 				break;
 		}

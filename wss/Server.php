@@ -26,6 +26,8 @@ abstract class Server extends \Utils\Verbose {
 	
 	private float $loop_idle_sleep 	= 0.5;
 	
+	protected string $task_name;
+	
 	const TIMEOUT_WRITE				= 30;
 	const TIMEOUT_READ 				= 30;
 	const BUFFER_WRITE 				= 1024 * 5;

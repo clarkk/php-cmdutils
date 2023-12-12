@@ -9,6 +9,8 @@ class Client extends Protocol {
 	private int $version;
 	private array $data 		= [];
 	
+	protected string $task_name;
+	
 	const HEADER_BYTES_READ		= 1024;
 	
 	public function __construct(string $task_name, int $verbose, $socket){

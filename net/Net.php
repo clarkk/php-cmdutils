@@ -57,6 +57,12 @@ class Net implements Error_codes {
 		return $this;
 	}
 	
+	public function auth_cert(string $path): self{
+		curl_setopt($this->curl, CURLOPT_SSLCERT, $path);
+		
+		return $this;
+	}
+	
 	public function decode_type(): self{
 		$this->decode_type = true;
 		

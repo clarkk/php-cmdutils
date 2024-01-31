@@ -89,6 +89,12 @@ class Net implements Error_codes {
 		return $this->send(self::METHOD_DELETE, $url, $post, $headers, $options);
 	}
 	
+	public function request_put(string $url, string $post='', array $headers=[], array $options=[]): array{
+		$this->check_url($url);
+		
+		return $this->send(self::METHOD_PUT, $url, $post, $headers, $options);
+	}
+	
 	public function request_multipart(string $url, string $post='', array $headers=[], array $options=[]): array{
 		$this->check_url($url);
 		

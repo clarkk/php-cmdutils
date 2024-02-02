@@ -17,8 +17,10 @@ abstract class Task_maintenance extends Task {
 			])->exec($table, 0);
 	}
 	
-	protected function optimize_tables(): void{
-		$dbh = \dbdata\DB::get_dbh();
+	protected function optimize_tables(\PDO $dbh=null): void{
+		if(!$dbh){
+			$dbh = \dbdata\DB::get_dbh();
+		}
 		$sth = $dbh->prepare("SHOW TABLES");
 		$sth->execute();
 		$sth->setFetchMode(\PDO::FETCH_NUM);

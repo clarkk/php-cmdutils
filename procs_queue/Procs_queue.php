@@ -109,7 +109,7 @@ abstract class Procs_queue extends \Utils\Verbose {
 				$this->verbose("Add worker '$host'", self::COLOR_GRAY);
 			}
 			
-			$ssh = new Worker_init($user, $host, $ssh_public_key, $ssh_private_key);
+			$ssh = new Worker_init($user, $host, false, $ssh_public_key, $ssh_private_key);
 			$ssh->check_proc_path($proc_path);
 			$ssh->check_tmp_path($tmp_path);
 			$nproc = $this->nproc_max_limit($ssh->get_nproc());

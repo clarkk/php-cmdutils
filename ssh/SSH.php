@@ -16,9 +16,9 @@ class SSH implements \Utils\Net\Error_codes {
 	const RSA_PRIVATE 		= '/var/ini/.ssh/id_rsa';
 	const RSA_PUBLIC 		= '/var/ini/.ssh/id_rsa.pub';
 	
-	public function __construct(string $user, string $host, bool $is_stream=false){
+	public function __construct(string $user, string $host, bool $is_stream=false, string $ssh_public_key=self::RSA_PUBLIC, string $ssh_private_key=self::RSA_PRIVATE){
 		$this->is_stream = $is_stream;
-		if(!is_readable(self::RSA_PRIVATE) || !is_readable(self::RSA_PUBLIC)){
+		if(!is_readable($ssh_private_key) || !is_readable($ssh_public_key)){
 			throw new Error('RSA keys not found', self::ERR_INIT);
 		}
 		
@@ -26,7 +26,7 @@ class SSH implements \Utils\Net\Error_codes {
 			throw new Error("Could not connect to '$host'", self::ERR_NETWORK);
 		}
 		
-		if(!ssh2_auth_pubkey_file($this->session, $user, self::RSA_PUBLIC, self::RSA_PRIVATE)){
+		if(!ssh2_auth_pubkey_file($this->session, $user, $ssh_public_key, $ssh_private_key)){
 			throw new Error("Could not authenticate to '$host'", self::ERR_AUTH);
 		}
 		

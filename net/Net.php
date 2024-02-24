@@ -160,6 +160,7 @@ class Net implements Error_codes {
 			], $headers),
 			CURLOPT_URL 			=> $url,
 			CURLOPT_RETURNTRANSFER 	=> true,
+			CURLOPT_HEADER			=> true,
 			CURLOPT_ENCODING 		=> '',
 			CURLOPT_FOLLOWLOCATION 	=> true,
 			CURLOPT_HTTP_VERSION 	=> strpos($url, 'https://') === 0 ? CURL_HTTP_VERSION_2_0 : CURL_HTTP_VERSION_1_1
@@ -183,6 +184,11 @@ class Net implements Error_codes {
 			throw new Error(curl_error($this->curl), self::ERR_NETWORK);
 		}
 		
+		$header_size 	= curl_getinfo($this->curl, CURLINFO_HEADER_SIZE);
+		$header 		= rtrim(substr($response, 0, $header_size));
+		$headers 		= array_slice(explode(self::CRLF, $header), 1);
+		$response 		= substr($response, $header_size);
+		
 		$code = curl_getinfo($this->curl, CURLINFO_HTTP_CODE);
 		$type = $this->get_content_type();
 		
@@ -197,6 +203,7 @@ class Net implements Error_codes {
 		return [
 			'code'		=> $code,
 			'type'		=> $type,
+			'header'	=> $headers,
 			'response'	=> $response
 		];
 	}

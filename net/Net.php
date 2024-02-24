@@ -7,6 +7,7 @@ class Net implements Error_codes {
 	private bool $keep_alive 		= false;
 	private bool $decode_type 		= false;
 	private string $auth 			= '';
+	private string $auth_bearer 	= '';
 	
 	private string $boundary 		= '';
 	
@@ -53,6 +54,12 @@ class Net implements Error_codes {
 	
 	public function auth(string $user, string $pass): self{
 		$this->auth = "$user:$pass";
+		
+		return $this;
+	}
+	
+	public function auth_bearer(string $token): self{
+		$this->auth_bearer = $token;
 		
 		return $this;
 	}
@@ -142,6 +149,10 @@ class Net implements Error_codes {
 	}
 	
 	private function send(string $method, string $url, string $post, array $headers, array $options): array{
+		if($this->auth_bearer){
+			$headers[] = 'Authorization: Bearer '.$this->auth_bearer;
+		}
+		
 		curl_setopt_array($this->curl, [
 			CURLOPT_CUSTOMREQUEST 	=> $method,
 			CURLOPT_HTTPHEADER 		=> array_merge([

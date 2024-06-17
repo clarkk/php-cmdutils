@@ -5,9 +5,9 @@ namespace Utils\Cache;
 class Cache {
 	private \Redis $redis;
 	
-	public function __construct(string $auth){
+	public function __construct(string $auth, string $host='127.0.0.1'){
 		$this->redis = new \Redis;
-		$this->redis->connect('127.0.0.1');
+		$this->redis->connect($host);
 		$this->redis->auth($auth);
 	}
 	

@@ -39,6 +39,11 @@ class Cache {
 		return json_decode($this->fetch($key), true) ?? [];
 	}
 	
+	//	Delete key
+	public function delete(string $key){
+		$this->redis->del($key);
+	}
+	
 	//	Find keys by pattern
 	public function scan(string $pattern): array{
 		$list = [];

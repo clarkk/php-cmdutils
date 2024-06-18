@@ -39,11 +39,13 @@ class Cache {
 		return json_decode($this->fetch($key), true) ?? [];
 	}
 	
+	//	Find keys by pattern
 	public function scan(string $pattern): array{
 		$list = [];
 		$this->redis->setOption(\Redis::OPT_SCAN, \Redis::SCAN_RETRY);
-		$it = null;
-		while($keys = $this->redis->scan($it, $pattern)){
+		$iterator = null;
+		while($iterator !== 0){
+			$keys = $this->redis->scan($iterator, $pattern);
 			$list = array_merge($list, $keys);
 		}
 		return $list;

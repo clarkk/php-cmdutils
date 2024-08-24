@@ -170,9 +170,7 @@ class Net implements Error_codes {
 			curl_setopt($this->curl, CURLOPT_USERPWD, $this->auth);
 		}
 		
-		if($post){
-			curl_setopt($this->curl, CURLOPT_POSTFIELDS, $post);
-		}
+		curl_setopt($this->curl, CURLOPT_POSTFIELDS, (bool)$post);
 		
 		foreach($options as $key => $value){
 			curl_setopt($this->curl, $key, $value);
